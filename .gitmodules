@@ -1,8 +1,4 @@
-[submodule "external/fmidi"]
+[submodule "src/fmidi"]
 	path = src/fmidi
 	url = https://github.com/jpcima/fmidi.git
-[submodule "external/abseil-cpp"]
-	path = src/abseil-cpp
-	url = https://github.com/abseil/abseil-cpp
-    branch = lts_2020_02_25
 	shallow = true
