@@ -54,6 +54,8 @@
 #define MAIN_SWITCH_ON "Switch on!"
 #define MAIN_SWITCH_OFF "Switch off!"
 #define CHANNEL_MASK 0x0F
+#define NOTE_ON 0x90
+#define NOTE_OFF 0x80
 #define MIDI_CHANNEL(byte) (byte & CHANNEL_MASK)
 #define MIDI_STATUS(byte) (byte & ~CHANNEL_MASK)
 #define MAX_BLOCK_SIZE 8192
@@ -174,14 +176,27 @@ static void
 batteur_callback(int delay, uint8_t number, uint8_t value, void* cbdata)
 {
     batteur_plugin_t* self = (batteur_plugin_t*)cbdata;
-    uint8_t msg[3] = { value > 0 ? 0b10010000 : 0b10000000, number, value };
-    LV2_Atom midiatom;
-	midiatom.type = self->midi_event_uri;
-	midiatom.size = sizeof(msg);
+    
+    uint8_t msg[3] = { 
+        value > 0 ? NOTE_ON : NOTE_OFF,
+        number,
+        value
+    };
 
-	if (0 == lv2_atom_forge_frame_time(&self->forge, delay)) return;
-	if (0 == lv2_atom_forge_raw(&self->forge, &midiatom, sizeof(LV2_Atom))) return;
-	if (0 == lv2_atom_forge_raw(&self->forge, msg, sizeof(msg))) return;
+    LV2_Atom atom = { 
+        .type = self->midi_event_uri,
+        .size = sizeof(msg)
+    };
+
+	if (!lv2_atom_forge_frame_time(&self->forge, delay))
+        return;
+
+	if (!lv2_atom_forge_raw(&self->forge, &atom, sizeof(LV2_Atom)))
+        return;
+
+	if (!lv2_atom_forge_raw(&self->forge, msg, sizeof(msg)))
+        return;
+
 	lv2_atom_forge_pad(&self->forge, sizeof(LV2_Atom) + sizeof(msg));
 }
 
