@@ -94,7 +94,7 @@ void batteur_next(batteur_player_t* player)
         return;
     
     auto self = reinterpret_cast<batteur::Player*>(player);
-    assert(false);
+    self->next();
 }
 
 void batteur_stop(batteur_player_t* player)
@@ -106,15 +106,23 @@ void batteur_stop(batteur_player_t* player)
     self->stop();
 }
 
-void batteur_pause(batteur_player_t* player)
+void batteur_start(batteur_player_t* player)
 {
     if (!player)
         return;
     
     auto self = reinterpret_cast<batteur::Player*>(player);
-    assert(false);
+    self->start();
 }
 
+bool batteur_playing(batteur_player_t* player)
+{
+    if (!player)
+        return false;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return self->isPlaying();
+}
 
 #ifdef __cplusplus
 }

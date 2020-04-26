@@ -1,5 +1,7 @@
 #pragma once
 #include "BeatDescription.h"
+#include "atomic_queue/atomic_queue.h"
+#include <atomic>
 namespace batteur {
 
 using NoteCallback = std::function<void(int, uint8_t, uint8_t)>;
@@ -8,11 +10,12 @@ class Player {
 public:
     Player();
     bool loadBeatDescription(const BeatDescription& description);
-    void start();
-    void stop();
-    void fillIn();
+    bool start();
+    bool stop();
+    bool fillIn();
+    bool next();
     void tick(int sampleCount);
-
+    bool isPlaying() const;
     void setSampleRate(double sampleRate);
     void setTempo(double bpm);
     void setNoteCallback(NoteCallback cb);
@@ -24,19 +27,29 @@ private:
         uint8_t number;
         uint8_t velocity;
     };
-    struct QueuedSequence {
-        const Sequence* sequence;
-        bool fill;
-    };
+
+    void updateState();
+    void _start();
+    void _stop();
+    void _fillIn();
+    void _next();
+
+    enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
+    enum class Message { Start = 1, Stop, Fill, Next };
+    State state { State::Stopped };
+    template<class T, unsigned N>
+    using spsc_queue = atomic_queue::AtomicQueue<T, N, T{}, false, false, false, true>;
+    spsc_queue<Message, 32> messages;
     static double totalDuration(const Sequence& sequence);
     const BeatDescription* currentBeat { nullptr };
     double position { 0.0 };
-    std::vector<QueuedSequence> queuedSequences;
+    std::vector<const Sequence*> queuedSequences;
     std::vector<NoteEvents> deferredNotes;
     NoteCallback noteCallback {};
     double secondsPerQuarter { 0.5 };
     double sampleRate { 48e3 };
     int fillIndex { 0 };
+    int partIndex { 0 };
 };
 
 }

@@ -34,7 +34,8 @@ BATTEUR_EXPORTED_API  void batteur_tick(batteur_player_t* player, int sample_cou
 BATTEUR_EXPORTED_API  void batteur_fill_in(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_next(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_stop(batteur_player_t* player);
-BATTEUR_EXPORTED_API  void batteur_pause(batteur_player_t* player);
+BATTEUR_EXPORTED_API  void batteur_start(batteur_player_t* player);
+BATTEUR_EXPORTED_API  bool batteur_playing(batteur_player_t* player);
 
 #ifdef __cplusplus
 }

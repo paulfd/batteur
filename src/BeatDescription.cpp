@@ -69,7 +69,7 @@ const BeatDescriptionErrorCategory beatDescriptionErrorCategory {};
 
 std::error_code batteur::make_error_code(batteur::BeatDescriptionError e)
 {
-  return { static_cast<int>(e), beatDescriptionErrorCategory };
+    return { static_cast<int>(e), beatDescriptionErrorCategory };
 }
 
 tl::optional<unsigned> getQuarterPerBars(const fmidi_event_t& evt)
@@ -84,17 +84,18 @@ tl::optional<double> getSecondsPerQuarter(const fmidi_event_t& evt)
 {
     if (evt.data[0] != 0x51 || evt.datalen != 4)
         return {};
-        
+
     const uint8_t* d24 = &evt.data[1];
     const uint32_t tempo = (d24[0] << 16) | (d24[1] << 8) | d24[2];
     return 1e-6 * tempo;
 }
 
-enum class MidiFileError{
+enum class MidiFileError {
     NotPresent,
     NoFilename,
     MidiFileError,
     WrongIgnoreBars,
+    WrongBars,
     NoDataRead
 };
 
@@ -116,11 +117,16 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     }
     batteur::Sequence returned;
 
-    const auto v = json["ignore_bars"];
-    if (!v.is_null() && !v.is_number_unsigned())
+    const auto ib = json["ignore_bars"];
+    if (!ib.is_null() && !ib.is_number_unsigned())
         return tl::make_unexpected(MidiFileError::WrongIgnoreBars);
+    const auto ignoreBars = ib.is_null() ? 0 : ib.get<unsigned>();
 
-    const auto ignoreBars = v.is_null() ? 0 : v.get<unsigned>();
+    const auto b = json["bars"];
+    if (!b.is_null() && !b.is_number_unsigned())
+        return tl::make_unexpected(MidiFileError::WrongBars);
+    const auto bars = b.is_null() ? 2 : b.get<unsigned>();
+    DBG("Bars to get {}", bars);
 
     const auto findLastNoteOn = [&returned](uint8_t number, double time) -> void {
         for (auto it = returned.rbegin(); it != returned.rend(); ++it) {
@@ -136,6 +142,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     unsigned quarterPerBars { 4 };
     double secondsPerQuarter { 0.5 };
     auto ignoredQuarters = static_cast<double>(quarterPerBars * ignoreBars);
+    auto fileEnd = static_cast<double>(quarterPerBars * (ignoreBars + bars));
     while (fmidi_seq_next_event(midiSequencer.get(), &event)) {
         const auto& evt = event.event;
         switch (evt->type) {
@@ -143,6 +150,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
             if (auto qpb = getQuarterPerBars(*evt)) {
                 quarterPerBars = *qpb;
                 ignoredQuarters = static_cast<double>(quarterPerBars * ignoreBars);
+                fileEnd = static_cast<double>(quarterPerBars * (ignoreBars + bars));
             } else if (auto spq = getSecondsPerQuarter(*evt)) {
                 secondsPerQuarter = *spq;
             }
@@ -156,8 +164,12 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
         }
 
         const double timeInQuarters = event.time / secondsPerQuarter;
+        
         if (timeInQuarters < ignoredQuarters)
             continue;
+
+        if (timeInQuarters > fileEnd)
+            break;
 
         switch (midi::status(evt->data[0])) {
         case midi::noteOff:
@@ -194,7 +206,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     return returned;
 }
 
-enum class BPMError{
+enum class BPMError {
     NotPresent,
     NotANumber,
     Negative
@@ -207,16 +219,16 @@ tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)
 
     if (!bpm.is_number())
         return tl::make_unexpected(BPMError::NotANumber);
-    
+
     const auto b = bpm.get<double>();
 
     if (b <= 0.0)
         return tl::make_unexpected(BPMError::Negative);
 
-    return b;  
+    return b;
 }
 
-enum class QuarterPerBarsError{
+enum class QuarterPerBarsError {
     NotPresent,
     NotAnUnsigned,
     Zero
@@ -229,13 +241,41 @@ tl::expected<unsigned, QuarterPerBarsError> checkQuartersPerBar(const nlohmann::
 
     if (!qpb.is_number_unsigned())
         return tl::make_unexpected(QuarterPerBarsError::NotAnUnsigned);
-    
+
     const auto q = qpb.get<unsigned>();
 
     if (q == 0)
         return tl::make_unexpected(QuarterPerBarsError::Zero);
 
-    return q;  
+    return q;
+}
+
+double getNumBars(const batteur::Sequence& sequence, unsigned quartersPerBar)
+{
+    if (sequence.empty())
+        return 0.0;
+
+    return std::ceil(sequence.back().timestamp / quartersPerBar);
+}
+
+void alignSequenceEnd(batteur::Sequence& sequence, double numBars, unsigned quartersPerBar)
+{
+    const double sequenceBars = getNumBars(sequence, quartersPerBar);
+    DBG("Number of bars in the sequence to align {:.2f} vs the one to align to {:.1f}", sequenceBars, numBars);
+    const double shift = (numBars - sequenceBars) * quartersPerBar;
+    DBG("Shifting by {:.2f}", shift);
+
+    if (shift < 0.0) {
+        sequence.erase(
+            sequence.begin(),
+            std::find_if(
+                sequence.begin(),
+                sequence.end(),
+                [shift](const batteur::Note& note) { return note.timestamp >= shift; }));
+    }
+
+    for (auto& note : sequence)
+        note.timestamp += shift;
 }
 
 std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFile(const fs::path& file, std::error_code& error)
@@ -271,6 +311,7 @@ std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFil
     }
 
     beat->bpm = checkBPM(json["bpm"]).value_or(120.0);
+
     beat->quartersPerBar = checkQuartersPerBar(json["quarters_per_bar"]).value_or(4);
 
     const auto rootDirectory = file.parent_path();
@@ -285,19 +326,27 @@ std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFil
         Part newPart;
         newPart.name = part["name"];
         auto mainLoop = readMidiFile(part["midi_file"], rootDirectory);
-        
+
         if (!mainLoop)
             continue;
 
         newPart.mainLoop = std::move(*mainLoop);
+        const auto numBars = getNumBars(newPart.mainLoop, beat->quartersPerBar);
+        DBG("Number of bars in the part: {:.2f}", numBars);
 
         for (auto& fill : part["fills"]) {
-            if (auto seq = readMidiFile(fill, rootDirectory))
-                newPart.fills.push_back(std::move(*seq));
+            if (auto seq = readMidiFile(fill, rootDirectory)) {
+                alignSequenceEnd(*seq, numBars, beat->quartersPerBar);
+                if (!seq->empty())
+                    newPart.fills.push_back(std::move(*seq));
+            }
         }
 
-        if (auto seq = readMidiFile(json["transition"], rootDirectory))
-            newPart.transition = std::move(*seq);
+        if (auto seq = readMidiFile(json["transition"], rootDirectory)) {
+            alignSequenceEnd(*seq, numBars, beat->quartersPerBar);
+            if (!seq->empty())
+                newPart.transition = std::move(*seq);
+        }
 
         beat->parts.push_back(std::move(newPart));
     }
@@ -306,7 +355,6 @@ std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFil
         error = BeatDescriptionError::NoParts;
         return {};
     }
-
 
     DBG("File: {}", file.native());
     DBG("Name: {}", beat->name);

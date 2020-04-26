@@ -419,11 +419,10 @@ main_switch_event(batteur_plugin_t* self, const LV2_Atom* atom, int64_t frame)
                     "[run] Main switch down (%.3f s since switch pressed)\n",
                     since_switch_pressed);
         
-        if (self->playing) {
+        if (batteur_playing(self->player)) {
             if (since_last_down < SWITCH_DURATION) {
                 lv2_log_note(&self->logger, "[run] Stop\n");
                 batteur_stop(self->player);
-                self->playing = false;
             } else if (since_switch_pressed < SWITCH_DURATION) {
                 lv2_log_note(&self->logger, "[run] Fill in\n");
                 batteur_fill_in(self->player);
@@ -433,7 +432,7 @@ main_switch_event(batteur_plugin_t* self, const LV2_Atom* atom, int64_t frame)
             }
         } else {
             lv2_log_note(&self->logger, "[run] Play\n");
-            self->playing = true;
+            batteur_start(self->player);
         }
         
         self->last_main_down = -frame;
