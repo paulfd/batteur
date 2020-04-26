@@ -61,6 +61,7 @@
 #define MAX_BLOCK_SIZE 8192
 #define MAX_PATH_SIZE 1024
 #define UNUSED(x) (void)(x)
+#define SWITCH_DURATION 0.75
 
 typedef struct
 {
@@ -116,9 +117,10 @@ typedef struct
     bool expect_nominal_block_length;
     char beat_file_path[MAX_PATH_SIZE];
     int max_block_size;
-    bool main_switched;
-    int64_t last_main_switch;
-    float sample_rate;
+    bool playing;
+    int64_t last_main_up;
+    int64_t last_main_down;
+    double sample_rate;
 } batteur_plugin_t;
 
 enum {
@@ -220,11 +222,12 @@ instantiate(const LV2_Descriptor* descriptor,
 
     // Set defaults
     self->max_block_size = MAX_BLOCK_SIZE;
-    self->sample_rate = (float)rate;
+    self->sample_rate = rate;
     self->expect_nominal_block_length = false;
     self->beat_file_path[0] = '\0';
-    self->main_switched = false;
-    self->last_main_switch = 0;
+    self->playing = false;
+    self->last_main_up = 0;
+    self->last_main_down = -(int64_t)(SWITCH_DURATION * rate);
     self->nextBeat = NULL;
 
     // Get the features from the host and populate the structure
@@ -370,7 +373,7 @@ batteur_process_midi_event(batteur_plugin_t* self, const LV2_Atom_Event* ev)
 }
 
 static void 
-batteur_send_file_path(batteur_plugin_t* self)
+send_file_path(batteur_plugin_t* self)
 {
     LV2_Atom_Forge_Frame frame;
     lv2_atom_forge_frame_time(&self->forge, 0);
@@ -383,7 +386,7 @@ batteur_send_file_path(batteur_plugin_t* self)
 }
 
 static void 
-batteur_send_status(batteur_plugin_t* self)
+send_status(batteur_plugin_t* self)
 {
     LV2_Atom_Forge_Frame frame;
     lv2_atom_forge_frame_time(&self->forge, 0);
@@ -391,12 +394,134 @@ batteur_send_status(batteur_plugin_t* self)
     lv2_atom_forge_key(&self->forge, self->patch_property_uri);
     lv2_atom_forge_urid(&self->forge, self->status_uri);
     lv2_atom_forge_key(&self->forge, self->patch_value_uri);
-    if (self->main_switched)
+    if (self->playing)
         lv2_atom_forge_string(&self->forge, MAIN_SWITCH_ON, strlen(MAIN_SWITCH_ON));
     else
         lv2_atom_forge_string(&self->forge, MAIN_SWITCH_OFF, strlen(MAIN_SWITCH_OFF));
 
     lv2_atom_forge_pop(&self->forge, &frame);
+}
+
+static void
+main_switch_event(batteur_plugin_t* self, const LV2_Atom* atom, int64_t frame)
+{
+    const uint32_t switch_status = *(uint32_t*)LV2_ATOM_BODY_CONST(atom);
+    if (switch_status == 1) {
+        self->last_main_up = -frame;
+    } else if (switch_status == 0) {
+        const double since_switch_pressed = 
+            (double)(frame + self->last_main_up) / self->sample_rate;
+
+        const double since_last_down = 
+            (double)(frame + self->last_main_down) / self->sample_rate;
+
+        lv2_log_note(&self->logger, 
+                    "[run] Main switch down (%.3f s since switch pressed)\n",
+                    since_switch_pressed);
+        
+        if (self->playing) {
+            if (since_last_down < SWITCH_DURATION) {
+                lv2_log_note(&self->logger, "[run] Stop\n");
+                batteur_stop(self->player);
+                self->playing = false;
+            } else if (since_switch_pressed < SWITCH_DURATION) {
+                lv2_log_note(&self->logger, "[run] Fill in\n");
+                batteur_fill_in(self->player);
+            } else {
+                lv2_log_note(&self->logger, "[run] Next\n");
+                batteur_next(self->player);
+            }
+        } else {
+            lv2_log_note(&self->logger, "[run] Play\n");
+            self->playing = true;
+        }
+        
+        self->last_main_down = -frame;
+    }
+}
+
+static void
+beat_description_event(batteur_plugin_t* self, const LV2_Atom* atom)
+{
+    const uint32_t original_atom_size = lv2_atom_total_size((const LV2_Atom*)atom);
+    const uint32_t null_terminated_atom_size = original_atom_size + 1;
+    char atom_buffer[null_terminated_atom_size];
+    memcpy(&atom_buffer, atom, original_atom_size);
+    atom_buffer[original_atom_size] = 0; // Null terminate the string for safety
+    LV2_Atom* file_path = (LV2_Atom*)&atom_buffer;
+    file_path->type = self->beat_description_uri;
+
+    // If the parameter is different from the current one we send it through
+    if (strcmp(self->beat_file_path, LV2_ATOM_BODY_CONST(file_path)))
+        self->worker->schedule_work(self->worker->handle, 
+                                    null_terminated_atom_size,
+                                    file_path);
+
+    lv2_log_note(&self->logger,
+                "[handle_object] Received a description file: %s\n",
+                (char*)LV2_ATOM_BODY_CONST(file_path));
+}
+
+static void
+handle_patch_set(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t frame)
+{
+    const LV2_Atom* property = NULL;
+    lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
+    if (!property) {
+        lv2_log_error(&self->logger, "Could not get the property from the patch object, aborting.\n");
+        return;
+    }
+
+    if (property->type != self->atom_urid_uri) {
+        lv2_log_error(&self->logger, "Atom type was not a URID, aborting.\n");
+        return;
+    }
+
+    const uint32_t key = ((const LV2_Atom_URID*)property)->body;
+    const LV2_Atom* atom = NULL;
+    lv2_atom_object_get(obj, self->patch_value_uri, &atom, 0);
+    if (!atom) {
+        lv2_log_error(&self->logger, "[handle_object] Error retrieving the atom, aborting.\n");
+        if (self->unmap)
+            lv2_log_warning(&self->logger,
+                "Atom URI: %s\n",
+                self->unmap->unmap(self->unmap->handle, key));
+        return;
+    }
+
+    if (key == self->beat_description_uri) {
+        beat_description_event(self, atom);
+    } else if (key == self->main_switch_uri) {
+        main_switch_event(self, atom, frame);
+        send_status(self);
+    } else {
+        lv2_log_warning(&self->logger, "[handle_object] Unknown or unsupported object.\n");
+        if (self->unmap)
+            lv2_log_warning(&self->logger,
+                "Object URI: %s\n",
+                self->unmap->unmap(self->unmap->handle, key));
+        return;
+    }
+}
+
+static void
+handle_patch_get(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t frame)
+{
+    UNUSED(frame);
+    const LV2_Atom_URID* property = NULL;
+    lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
+    if (!property) // Send the full state
+    {
+        lv2_log_warning(&self->logger, "Got an Patch GET with no body.\n");
+        send_file_path(self);
+        send_status(self);
+    } else if (property->body == self->beat_description_uri) {
+        lv2_log_warning(&self->logger, "Got an Patch GET for the beat description.\n");
+        send_file_path(self);
+    } else if (property->body == self->status_uri) {
+        lv2_log_warning(&self->logger, "Got an Patch GET for the status.\n");
+        send_status(self);
+    }
 }
 
 static void
@@ -419,79 +544,9 @@ run(LV2_Handle instance, uint32_t sample_count)
         if (ev->body.type == self->atom_object_uri) {
             const LV2_Atom_Object* obj = (const LV2_Atom_Object*)&ev->body;
             if (obj->body.otype == self->patch_set_uri) {
-                lv2_log_warning(&self->logger, "Got a Patch SET.\n");
-                const LV2_Atom* property = NULL;
-                lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
-                if (!property) {
-                    lv2_log_error(&self->logger, "Could not get the property from the patch object, aborting.\n");
-                    continue;
-                }
-
-                if (property->type != self->atom_urid_uri) {
-                    lv2_log_error(&self->logger, "Atom type was not a URID, aborting.\n");
-                    continue;
-                }
-
-                const uint32_t key = ((const LV2_Atom_URID*)property)->body;
-                const LV2_Atom* atom = NULL;
-                lv2_atom_object_get(obj, self->patch_value_uri, &atom, 0);
-                if (!atom) {
-                    lv2_log_error(&self->logger, "[handle_object] Error retrieving the atom, aborting.\n");
-                    if (self->unmap)
-                        lv2_log_warning(&self->logger,
-                            "Atom URI: %s\n",
-                            self->unmap->unmap(self->unmap->handle, key));
-                    continue;
-                }
-
-                if (key == self->beat_description_uri) {
-                    const uint32_t original_atom_size = lv2_atom_total_size((const LV2_Atom*)atom);
-                    const uint32_t null_terminated_atom_size = original_atom_size + 1;
-                    char atom_buffer[null_terminated_atom_size];
-                    memcpy(&atom_buffer, atom, original_atom_size);
-                    atom_buffer[original_atom_size] = 0; // Null terminate the string for safety
-                    LV2_Atom* file_path = (LV2_Atom*)&atom_buffer;
-                    file_path->type = self->beat_description_uri;
-
-                    // If the parameter is different from the current one we send it through
-                    if (strcmp(self->beat_file_path, LV2_ATOM_BODY_CONST(file_path)))
-                        self->worker->schedule_work(self->worker->handle, null_terminated_atom_size, file_path);
-                    lv2_log_note(&self->logger, "[handle_object] Received a description file: %s\n", (char*)LV2_ATOM_BODY_CONST(file_path));
-                } else if (key == self->main_switch_uri) {
-                    // lv2_log_note(&self->logger, "Read as uint32 %d\n", *(uint32_t*)LV2_ATOM_BODY_CONST(atom));
-                    const uint32_t switch_status = *(uint32_t*)LV2_ATOM_BODY_CONST(atom);
-                    if (switch_status == 1) {
-                        const double duration = (double)(ev->time.frames + self->last_main_switch) / self->sample_rate;
-                        lv2_log_note(&self->logger, "[run] Main switch pressed (%.3f s since last pressed)\n", duration);
-                        self->last_main_switch = -ev->time.frames;
-                        self->main_switched = !self->main_switched;
-                    }
-                    batteur_send_status(self);
-                } else {
-                    lv2_log_warning(&self->logger, "[handle_object] Unknown or unsupported object.\n");
-                    if (self->unmap)
-                        lv2_log_warning(&self->logger,
-                            "Object URI: %s\n",
-                            self->unmap->unmap(self->unmap->handle, key));
-                    continue;
-                }
+                handle_patch_set(self, obj, ev->time.frames);
             } else if (obj->body.otype == self->patch_get_uri) {
-                lv2_log_warning(&self->logger, "Got a Patch GET.\n");
-
-                const LV2_Atom_URID* property = NULL;
-                lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
-                if (!property) // Send the full state
-                {
-                    lv2_log_warning(&self->logger, "Got an Patch GET with no body.\n");
-                    batteur_send_file_path(self);
-                    batteur_send_status(self);
-                } else if (property->body == self->beat_description_uri) {
-                    lv2_log_warning(&self->logger, "Got an Patch GET for the beat description.\n");
-                    batteur_send_file_path(self);
-                } else if (property->body == self->status_uri) {
-                    lv2_log_warning(&self->logger, "Got an Patch GET for the status.\n");
-                    batteur_send_status(self);
-                }
+                handle_patch_get(self, obj, ev->time.frames);
             } else {
                 lv2_log_warning(&self->logger, "Got an Object atom but it was not supported.\n");
                 if (self->unmap)
@@ -506,9 +561,9 @@ run(LV2_Handle instance, uint32_t sample_count)
         }
     }
 
-    self->last_main_switch += sample_count;
-    if (self->main_switched)
-        batteur_tick(self->player, sample_count);
+    self->last_main_up += sample_count;
+    self->last_main_down += sample_count;
+    batteur_tick(self->player, sample_count);
 }
 
 static uint32_t

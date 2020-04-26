@@ -79,6 +79,43 @@ void batteur_tick(batteur_player_t* player, int sample_count)
     self->tick(sample_count);
 }
 
+void batteur_fill_in(batteur_player_t* player)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    self->fillIn();
+}
+
+void batteur_next(batteur_player_t* player)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    assert(false);
+}
+
+void batteur_stop(batteur_player_t* player)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    self->stop();
+}
+
+void batteur_pause(batteur_player_t* player)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    assert(false);
+}
+
+
 #ifdef __cplusplus
 }
 #endif
