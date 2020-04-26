@@ -1,7 +1,6 @@
 #include "BeatDescription.h"
 #include "MathHelpers.h"
 #include <fmidi/fmidi.h>
-#include "tl/expected.hpp"
 
 using nlohmann::json;
 
@@ -158,10 +157,7 @@ tl::optional<batteur::Sequence> readMidiFile(nlohmann::json& json, const fs::pat
             }
 
             // It's a real note-on
-            returned.push_back({ timeInQuarters,
-                0.0,
-                evt->data[1],
-                evt->data[2] });
+            returned.push_back({ timeInQuarters, 0.0, evt->data[1], evt->data[2] });
             break;
         default:
             break;
