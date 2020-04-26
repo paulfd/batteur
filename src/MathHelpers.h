@@ -1,3 +1,5 @@
+#pragma once
+
 template <class T>
 constexpr T max(T op1, T op2)
 {
@@ -36,3 +38,10 @@ constexpr T clamp(T v, T lo, T hi)
 {
     return max(min(v, hi), lo);
 }
+
+template <class T>
+constexpr bool within(T v, T lo, T hi)
+{
+    return v <= hi && v >= lo;
+}
+

@@ -1,6 +1,7 @@
 #include "BeatDescription.h"
 #include "MathHelpers.h"
 #include <fmidi/fmidi.h>
+#include "tl/expected.hpp"
 
 using nlohmann::json;
 
@@ -29,12 +30,6 @@ constexpr int buildAndCenterPitch(uint8_t firstByte, uint8_t secondByte)
 {
     return (int)(((unsigned int)secondByte << 7) + (unsigned int)firstByte) - 8192;
 }
-}
-
-template <class T>
-constexpr float normalize7Bits(T value)
-{
-    return static_cast<float>(min(max(value, T { 0 }), T { 127 })) / 127.0f;
 }
 
 namespace { // anonymous namespace
@@ -177,6 +172,50 @@ tl::optional<batteur::Sequence> readMidiFile(nlohmann::json& json, const fs::pat
     return returned;
 }
 
+enum class BPMError{
+    NotPresent,
+    NotANumber,
+    Negative
+};
+
+tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)
+{
+    if (bpm.is_null())
+        return tl::make_unexpected(BPMError::NotPresent);
+
+    if (!bpm.is_number())
+        return tl::make_unexpected(BPMError::NotANumber);
+    
+    const auto b = bpm.get<double>();
+
+    if (b <= 0.0)
+        return tl::make_unexpected(BPMError::Negative);
+
+    return b;  
+}
+
+enum class QuarterPerBarsError{
+    NotPresent,
+    NotAnUnsigned,
+    Zero
+};
+
+tl::expected<unsigned, QuarterPerBarsError> checkQuartersPerBar(const nlohmann::json& qpb)
+{
+    if (qpb.is_null())
+        return tl::make_unexpected(QuarterPerBarsError::NotPresent);
+
+    if (!qpb.is_number_unsigned())
+        return tl::make_unexpected(QuarterPerBarsError::NotAnUnsigned);
+    
+    const auto q = qpb.get<unsigned>();
+
+    if (q == 0)
+        return tl::make_unexpected(QuarterPerBarsError::Zero);
+
+    return q;  
+}
+
 std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFile(const fs::path& file, std::error_code& error)
 {
     if (!fs::exists(file)) {
@@ -209,21 +248,8 @@ std::unique_ptr<batteur::BeatDescription> batteur::BeatDescription::buildFromFil
         return {};
     }
 
-    const auto bpm = json["bpm"];
-    if (!bpm.is_null() && bpm.is_number()) {
-        auto b = bpm.get<float>();
-        beat->bpm = clamp(b, 20.0f, 300.0f);
-    } else {
-        beat->bpm = 120.0f;
-    }
-
-    const auto qpb = json["quarters_per_bar"];
-    if (!qpb.is_null() && qpb.is_number_integer()) {
-        auto b = qpb.get<int>();
-        beat->quartersPerBar = clamp(b, 1, 12);
-    } else {
-        beat->quartersPerBar = 4;
-    }
+    beat->bpm = checkBPM(json["bpm"]).value_or(120.0);
+    beat->quartersPerBar = checkQuartersPerBar(json["quarters_per_bar"]).value_or(4);
 
     const auto rootDirectory = file.parent_path();
     beat->intro = readMidiFile(json["intro"], rootDirectory);

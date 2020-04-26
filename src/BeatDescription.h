@@ -31,7 +31,7 @@ struct BeatDescription {
     std::string name;
     std::string group;
     float bpm;
-    int quartersPerBar;
+    unsigned quartersPerBar;
     tl::optional<Sequence> intro;
     std::vector<Part> parts;
     tl::optional<Sequence> ending;
