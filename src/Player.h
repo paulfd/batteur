@@ -41,6 +41,8 @@ private:
     using spsc_queue = atomic_queue::AtomicQueue<T, N, T{}, false, false, false, true>;
     spsc_queue<Message, 32> messages;
     static double totalDuration(const Sequence& sequence);
+    bool enteringFillInState() const;
+    bool leavingFillInState() const;
     const BeatDescription* currentBeat { nullptr };
     double position { 0.0 };
     std::vector<const Sequence*> queuedSequences;

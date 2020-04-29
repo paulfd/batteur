@@ -129,21 +129,15 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
             continue;
 
         newPart.mainLoop = std::move(*mainLoop);
-        const auto numBars = getNumBars(newPart.mainLoop, beat->quartersPerBar);
-        DBG("Number of bars in the part: {:.2f}", numBars);
 
         for (auto& fill : part["fills"]) {
             if (auto seq = readMidiFile(fill, rootDirectory)) {
-                alignSequenceEnd(*seq, numBars, beat->quartersPerBar);
-                if (!seq->empty())
-                    newPart.fills.push_back(std::move(*seq));
+                newPart.fills.push_back(std::move(*seq));
             }
         }
 
         if (auto seq = readMidiFile(json["transition"], rootDirectory)) {
-            alignSequenceEnd(*seq, numBars, beat->quartersPerBar);
-            if (!seq->empty())
-                newPart.transition = std::move(*seq);
+            newPart.transition = std::move(*seq);
         }
 
         beat->parts.push_back(std::move(newPart));
