@@ -11,6 +11,7 @@ enum class MidiFileError {
     MidiFileError,
     WrongIgnoreBars,
     WrongBars,
+    ZeroBars,
     NoDataRead
 };
 
@@ -20,7 +21,7 @@ enum class BPMError {
     Negative
 };
 
-enum class QuarterPerBarsError {
+enum class QuartersPerBarError {
     NotPresent,
     NotAnUnsigned,
     Zero
@@ -30,8 +31,7 @@ enum class QuarterPerBarsError {
 
 tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json, const fs::path& rootDirectory);
 tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm);
-tl::expected<unsigned, QuarterPerBarsError> checkQuartersPerBar(const nlohmann::json& qpb);
-double getNumBars(const batteur::Sequence& sequence, unsigned quartersPerBar);
-void alignSequenceEnd(batteur::Sequence& sequence, double numBars, unsigned quartersPerBar);
+tl::expected<unsigned, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb);
+
 tl::optional<unsigned> getQuarterPerBars(const fmidi_event_t& evt);
 tl::optional<double> getSecondsPerQuarter(const fmidi_event_t& evt);

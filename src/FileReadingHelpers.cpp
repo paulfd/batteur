@@ -34,20 +34,35 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     fmidi_smf_u midiFile { fmidi_smf_file_read(filepath.c_str()) };
     if (!midiFile) {
         DBG("Cannot read file {} from root directory {}", json["filename"].get<std::string>(), rootDirectory.native());
-        return {};
+        return tl::make_unexpected(MidiFileError::MidiFileError);
     }
     batteur::Sequence returned;
 
     const auto ib = json["ignore_bars"];
     if (!ib.is_null() && !ib.is_number_unsigned())
         return tl::make_unexpected(MidiFileError::WrongIgnoreBars);
-    const auto ignoreBars = ib.is_null() ? 0 : ib.get<unsigned>();
+    const unsigned ignoreBars { ib.is_null() ? 0 : ib.get<unsigned>() };
 
     const auto b = json["bars"];
-    if (!b.is_null() && !b.is_number_unsigned())
-        return tl::make_unexpected(MidiFileError::WrongBars);
-    const auto bars = b.is_null() ? 2 : b.get<unsigned>();
-    DBG("Bars to get {}", bars);
+    if (!b.is_null()) {
+        if (!b.is_number_unsigned())
+            return tl::make_unexpected(MidiFileError::WrongBars);
+        if (b.get<unsigned>() == 0)
+            return tl::make_unexpected(MidiFileError::ZeroBars);
+    }
+    // Zero has a meaning internally
+    const unsigned bars { b.is_null() ? 0 : b.get<unsigned>() };
+
+    const auto updateIgnored = [ignoreBars] (unsigned qpb) -> double {
+        return static_cast<double>(qpb * ignoreBars);
+    };
+
+    const auto updateEnd = [ignoreBars, bars] (unsigned qpb) -> double {
+        if (bars > 0)
+            return static_cast<double>(qpb *(ignoreBars + bars));
+        else
+            return 0.0;
+    };
 
     const auto findLastNoteOn = [&returned](uint8_t number, double time) -> void {
         for (auto it = returned.rbegin(); it != returned.rend(); ++it) {
@@ -62,16 +77,16 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     fmidi_seq_event_t event;
     unsigned quarterPerBars { 4 };
     double secondsPerQuarter { 0.5 };
-    auto ignoredQuarters = static_cast<double>(quarterPerBars * ignoreBars);
-    auto fileEnd = static_cast<double>(quarterPerBars * (ignoreBars + bars));
+    auto ignoredQuarters = updateIgnored(quarterPerBars);
+    auto fileEnd = updateEnd(quarterPerBars);
     while (fmidi_seq_next_event(midiSequencer.get(), &event)) {
         const auto& evt = event.event;
         switch (evt->type) {
         case (fmidi_event_meta):
             if (auto qpb = getQuarterPerBars(*evt)) {
                 quarterPerBars = *qpb;
-                ignoredQuarters = static_cast<double>(quarterPerBars * ignoreBars);
-                fileEnd = static_cast<double>(quarterPerBars * (ignoreBars + bars));
+                ignoredQuarters = updateIgnored(quarterPerBars);
+                fileEnd = updateEnd(quarterPerBars);
             } else if (auto spq = getSecondsPerQuarter(*evt)) {
                 secondsPerQuarter = *spq;
             }
@@ -89,7 +104,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
         if (timeInQuarters < ignoredQuarters)
             continue;
 
-        if (timeInQuarters > fileEnd)
+        if (fileEnd > 0.0 && timeInQuarters > fileEnd)
             break;
 
         switch (midi::status(evt->data[0])) {
@@ -143,18 +158,18 @@ tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)
     return b;
 }
 
-tl::expected<unsigned, QuarterPerBarsError> checkQuartersPerBar(const nlohmann::json& qpb)
+tl::expected<unsigned, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb)
 {
     if (qpb.is_null())
-        return tl::make_unexpected(QuarterPerBarsError::NotPresent);
+        return tl::make_unexpected(QuartersPerBarError::NotPresent);
 
     if (!qpb.is_number_unsigned())
-        return tl::make_unexpected(QuarterPerBarsError::NotAnUnsigned);
+        return tl::make_unexpected(QuartersPerBarError::NotAnUnsigned);
 
     const auto q = qpb.get<unsigned>();
 
     if (q == 0)
-        return tl::make_unexpected(QuarterPerBarsError::Zero);
+        return tl::make_unexpected(QuartersPerBarError::Zero);
 
     return q;
 }
