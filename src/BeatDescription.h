@@ -3,7 +3,6 @@
 #include <string>
 #include <fstream>
 #include "filesystem.hpp"
-#include "json.hpp"
 #include "Debug.h"
 #include "tl/optional.hpp"
 
@@ -20,12 +19,16 @@ struct Note {
 
 using Sequence = std::vector<Note>;
 
+double getNumBars(const Sequence& sequence, unsigned quartersPerBar);
+void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBar);
+
 struct Part {
     std::string name;
     Sequence mainLoop;
     std::vector<Sequence> fills;
     tl::optional<Sequence> transition;
 };
+
 
 struct BeatDescription {
     std::string name;

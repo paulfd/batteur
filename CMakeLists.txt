@@ -26,6 +26,7 @@ add_subdirectory(src/fmidi EXCLUDE_FROM_ALL)
 ### Main lib
 set (BATTEUR_SOURCES
     src/BeatDescription.cpp
+    src/FileReadingHelpers.cpp
     src/Player.cpp
 )
 
