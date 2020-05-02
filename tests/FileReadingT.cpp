@@ -153,7 +153,7 @@ TEST_CASE("[Files] ReadMidiFile files")
         const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 5 );
-        REQUIRE( batteur::getNumBars(*f, 4) == 2);
+        REQUIRE( batteur::barCount(*f, 4) == 2);
     }
 
     SECTION("Test file 1 - Ignore 1")
@@ -162,7 +162,7 @@ TEST_CASE("[Files] ReadMidiFile files")
         const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 4 );
-        REQUIRE( batteur::getNumBars(*f, 4) == 1);
+        REQUIRE( batteur::barCount(*f, 4) == 1);
     }
 
     SECTION("Test file 2")
@@ -171,7 +171,7 @@ TEST_CASE("[Files] ReadMidiFile files")
         const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f->size() == 5 );
-        REQUIRE( batteur::getNumBars(*f, 4) == 4);
+        REQUIRE( batteur::barCount(*f, 4) == 4);
     }
 
     SECTION("Test file 3")
@@ -180,6 +180,6 @@ TEST_CASE("[Files] ReadMidiFile files")
         const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 16 );
-        REQUIRE( batteur::getNumBars(*f, 4) == 4);
+        REQUIRE( batteur::barCount(*f, 4) == 4);
     }
 }

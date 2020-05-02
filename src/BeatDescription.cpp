@@ -48,7 +48,7 @@ std::error_code batteur::make_error_code(batteur::BeatDescriptionError e)
 
 namespace batteur{
   
-double getNumBars(const Sequence& sequence, unsigned quartersPerBar)
+double barCount(const Sequence& sequence, unsigned quartersPerBar)
 {
     if (sequence.empty())
         return 0.0;
@@ -58,7 +58,7 @@ double getNumBars(const Sequence& sequence, unsigned quartersPerBar)
 
 void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBar)
 {
-    const double sequenceBars = getNumBars(sequence, quartersPerBar);
+    const double sequenceBars = barCount(sequence, quartersPerBar);
     DBG("Number of bars in the sequence to align {:.2f} vs the one to align to {:.1f}", sequenceBars, numBars);
     const double shift = (numBars - sequenceBars) * quartersPerBar;
     DBG("Shifting by {:.2f}", shift);
@@ -123,23 +123,24 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
     for (auto& part : parts) {
         Part newPart;
         newPart.name = part["name"];
+        DBG("Reading main loop for {}", newPart.name);
         auto mainLoop = readMidiFile(part["midi_file"], rootDirectory);
-
         if (!mainLoop)
             continue;
 
         newPart.mainLoop = std::move(*mainLoop);
 
         for (auto& fill : part["fills"]) {
+            DBG("Reading fill");
             if (auto seq = readMidiFile(fill, rootDirectory)) {
                 newPart.fills.push_back(std::move(*seq));
             }
         }
 
-        if (auto seq = readMidiFile(json["transition"], rootDirectory)) {
+        DBG("Reading transition");
+        if (auto seq = readMidiFile(part["transition"], rootDirectory)) {
             newPart.transition = std::move(*seq);
         }
-
         beat->parts.push_back(std::move(newPart));
     }
 

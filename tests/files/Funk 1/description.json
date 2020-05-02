@@ -1,0 +1,20 @@
+{
+    "name": "Funk 1",
+    "group": "Funk",
+    "bpm" : 92,
+    "quarters_per_bar": 4,
+    "ending": { "filename" : "092 Funk 1K.mid" },
+    "parts": [
+        {
+            "name": "Main",
+            "midi_file" : { "filename" : "092 Funk 1.mid" },
+            "fills": [
+                { "filename" : "092 Funk 1 Fill 1.mid" },
+                { "filename" : "092 Funk 1 Fill 2.mid" },
+                { "filename" : "092 Funk 1 Fill 3.mid" },
+                { "filename" : "092 Funk 1 Fill 4.mid" }
+            ],
+            "transition": { "filename" : "092 Funk 1 Fill 1.mid" }
+        }
+    ]
+}

@@ -19,8 +19,10 @@ struct Note {
 
 using Sequence = std::vector<Note>;
 
-double getNumBars(const Sequence& sequence, unsigned quartersPerBar);
+double barCount(const Sequence& sequence, unsigned quartersPerBar);
 void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBar);
+unsigned quarterStart(const Sequence& sequence, unsigned quartersPerBar);
+unsigned quarterEnd(const Sequence& sequence, unsigned quartersPerBar);
 
 struct Part {
     std::string name;

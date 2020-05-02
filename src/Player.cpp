@@ -75,26 +75,21 @@ void Player::_fillIn()
 
 void Player::_next()
 {
-    switch (queuedSequences.size()) {
-    case 3:
-        if (currentBeat->parts[partIndex].transition) {
-            queuedSequences.pop_back();
-            queuedSequences.pop_back();
+    const auto& currentTransition = currentBeat->parts[partIndex].transition;
+    if (enteringFillInState()) {
+        queuedSequences.pop_back(); // Remove the back (which should be the next part)
+        if (currentTransition) {
             DBG("Adding a transition");
-            queuedSequences.push_back(&*currentBeat->parts[partIndex].transition);
+            queuedSequences.pop_back();
+            queuedSequences.push_back(&currentTransition.value());
         }
-        break;
-    case 2:
-        queuedSequences.pop_back();
-        break;
-    case 1:
-        if (currentBeat->parts[partIndex].transition) {
+    } else if (leavingFillInState()) {
+        queuedSequences.pop_back(); // Remove the back (which should be the next part)
+    } else {
+        if (currentTransition) {
             DBG("Adding a transition");
-            queuedSequences.push_back(&*currentBeat->parts[partIndex].transition);
+            queuedSequences.push_back(&currentTransition.value());
         }
-        break;
-    default:
-        break;
     }
     partIndex = (partIndex + 1) % currentBeat->parts.size();
     fillIndex = 0;
@@ -189,7 +184,7 @@ void Player::tick(int sampleCount)
             }
 
             const auto sequenceDuration = 
-                getNumBars(*current, currentQPB) * currentQPB;
+                barCount(*current, currentQPB) * currentQPB;
 
             if (blockEnd < sequenceDuration) {
                 position = blockEnd;
