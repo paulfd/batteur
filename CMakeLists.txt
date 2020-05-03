@@ -36,16 +36,29 @@ target_include_directories(batteur_objects PUBLIC src)
 set_target_properties(batteur_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 if (BATTEUR_STATIC)
-add_library(batteur_static STATIC src/wrapper.cpp)
-target_link_libraries(batteur_static PRIVATE batteur_objects)
-target_include_directories(batteur_static PUBLIC src)
-add_library(batteur::batteur ALIAS batteur_static)
+    add_library(batteur_static STATIC src/wrapper.cpp)
+    target_link_libraries(batteur_static PRIVATE batteur_objects)
+    target_include_directories(batteur_static PUBLIC src)
+    add_library(batteur::batteur ALIAS batteur_static)
 endif()
 
 if (BATTEUR_SHARED)
-add_library(batteur_shared SHARED src/wrapper.cpp)
-target_link_libraries(batteur_shared PRIVATE batteur_objects)
-target_include_directories(batteur_shared PUBLIC src)
+    add_library(batteur_shared SHARED src/wrapper.cpp)
+    target_link_libraries(batteur_shared PRIVATE batteur_objects)
+    target_include_directories(batteur_shared PUBLIC src)
+    target_compile_definitions(batteur_shared PRIVATE BATTEUR_EXPORT_SYMBOLS)
+    set_target_properties (batteur_shared PROPERTIES 
+        SOVERSION ${PROJECT_VERSION_MAJOR} 
+        OUTPUT_NAME batteur
+        PUBLIC_HEADER "src/batteur.h"
+    )
+    if (NOT MSVC)
+        install (TARGETS batteur_shared
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT "runtime")
+    endif()
 endif()
 
 if (BATTEUR_JACK)

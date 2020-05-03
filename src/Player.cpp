@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "BeatDescription.h"
+#include <cmath>
 
 namespace batteur {
 
