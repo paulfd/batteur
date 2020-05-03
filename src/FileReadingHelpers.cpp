@@ -133,7 +133,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
         note.timestamp -= ignoredQuarters;
     }
 
-#if 1
+#if 0
     DBG("Note NUM: TIME (DURATION)");
     for (auto& note : returned) {
         DBG("Note {} : {:.2f} ({:.2f})", +note.number, note.timestamp, note.duration );

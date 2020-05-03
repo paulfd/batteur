@@ -13,6 +13,7 @@ bool Player::loadBeatDescription(const BeatDescription& description)
     if (description.parts.empty())
         return false;
 
+    state = State::Stopped;
     currentBeat = &description;
     position = 0.0;
     queuedSequences.clear();
@@ -133,7 +134,7 @@ void Player::tick(int sampleCount)
         return;
 
     const auto currentQPB = currentBeat->quartersPerBar;
-     auto blockStart = position;
+    auto blockStart = position;
     double blockEnd = blockStart + sampleCount / sampleRate / secondsPerQuarter;
     const auto midiDelay = [&] (double timestamp) -> int {
         return static_cast<int>(
@@ -150,18 +151,19 @@ void Player::tick(int sampleCount)
         return std::floor(barPosition) * qpb;
     };
 
+    const auto movePosition = [&] (double offset) {
+        blockEnd += offset; 
+        blockStart += offset; 
+        position += offset;
+    };
+
     const auto eraseFrontSequence = [&] {
         queuedSequences.erase(queuedSequences.begin());
         current = queuedSequences.front();
         noteIt = current->begin();
+        movePosition(-barStartedAt(position));
     };
 
-    const auto rebasePosition = [&] {
-        const auto offset = barStartedAt(position);
-        blockEnd -= offset; 
-        blockStart -= offset; 
-        position -= offset;
-    };
 
     while (state != State::Stopped) {
         noteIt = std::find_if(
@@ -171,15 +173,12 @@ void Player::tick(int sampleCount)
         );
     
         if (noteIt == current->end()) {
-            if (enteringFillInState())
-                break;
-
             if (leavingFillInState()) {
                 // Exiting the fill-in state
-                DBG("Exiting fill-in state: removing the top sequence");
+                // DBG("Exiting fill-in state: removing the top sequence");
                 eraseFrontSequence();
-                rebasePosition();
-                state = State::Playing;
+                if (state != State::Ending)
+                    state = State::Playing;
                 continue;
             }
 
@@ -191,7 +190,7 @@ void Player::tick(int sampleCount)
                 break;
             }
 
-            blockEnd = sequenceDuration - position;
+            blockEnd -= sequenceDuration;
             position = 0.0;
 
             if (state == State::Ending) {
@@ -202,11 +201,25 @@ void Player::tick(int sampleCount)
         }        
 
         if (enteringFillInState()) {
-            // Entering the fill-in
-            if ((noteIt->timestamp - barStartedAt(position)) > queuedSequences[1]->front().timestamp) {
-                DBG("Entering fill-in state: removing the top sequence");
+            const auto barStart = barStartedAt(position);
+            const auto relPosition = position - barStart;
+            const auto barThreshold = static_cast<double>(currentBeat->quartersPerBar) - 1;
+            const auto relFillStart = queuedSequences[1]->front().timestamp;
+            // DBG("Could start fill in; relative position {:.2f}, fill start at {:.2f}", relPosition, relFillStart);
+            if (relPosition > barThreshold) {
+                if(relFillStart > barThreshold) {
+                    // DBG("Fill-in has a short bar; starting fill-in now");
+                    eraseFrontSequence();
+                    continue;
+                }
+                // DBG("Deferring fill in next bar");
+            } else {
+                // DBG("Starting fill-in now", position);
                 eraseFrontSequence();
-                rebasePosition();
+                if (relFillStart > barThreshold) {
+                    // DBG("Fill-in has a short bar; skipping the first fill bar");
+                    movePosition(static_cast<double>(currentBeat->quartersPerBar));
+                } 
                 continue;
             }
         }
@@ -216,14 +229,15 @@ void Player::tick(int sampleCount)
             break;
         }
 
+#if 0
         DBG("Seq: {} | Pos/BlockEnd: {:2.2f}/{:2.2f} | current note (index/time/duration) : {}/{:.2f}/{:.2f}",
             queuedSequences.size(), 
             position,
             blockEnd,
             std::distance(queuedSequences.front()->begin(), noteIt),
             noteIt->timestamp,
-            noteIt->duration
-        );
+            noteIt->duration);
+#endif
 
         const int noteOnDelay = midiDelay(noteIt->timestamp);
         const int noteOffDelay = midiDelay(noteIt->timestamp + noteIt->duration);
