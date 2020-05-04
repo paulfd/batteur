@@ -18,6 +18,7 @@ public:
     bool next();
     void tick(int sampleCount);
     bool isPlaying() const;
+    void allOff();
     void setSampleRate(double sampleRate);
     void setTempo(double bpm);
     void setNoteCallback(NoteCallback cb);
@@ -35,6 +36,8 @@ private:
     void _stop();
     void _fillIn();
     void _next();
+
+    void reset();
 
     enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
     enum class Message { Start = 1, Stop, Fill, Next };

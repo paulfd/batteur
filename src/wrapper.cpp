@@ -115,6 +115,15 @@ void batteur_start(batteur_player_t* player)
     self->start();
 }
 
+void batteur_all_off(batteur_player_t* player)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    self->allOff();
+}
+
 bool batteur_playing(batteur_player_t* player)
 {
     if (!player)

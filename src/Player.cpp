@@ -16,11 +16,16 @@ bool Player::loadBeatDescription(const BeatDescription& description)
     if (description.parts.empty())
         return false;
 
-    state = State::Stopped;
     currentBeat = &description;
+    reset();
+    return true;
+}
+
+void Player::reset()
+{
+    state = State::Stopped;
     position = 0.0;
     queuedSequences.clear();
-    return true;
 }
 
 bool Player::start()
@@ -298,6 +303,12 @@ void Player::setNoteCallback(NoteCallback cb)
 const char* Player::getCurrentPartName()
 {
     return {};
+}
+
+void Player::allOff()
+{
+    const std::unique_lock<std::mutex> lock { callbackGuard };
+    reset();
 }
 
 double Player::totalDuration(const Sequence& sequence)
