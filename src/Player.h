@@ -2,6 +2,8 @@
 #include "BeatDescription.h"
 #include "atomic_queue/atomic_queue.h"
 #include <atomic>
+#include <mutex>
+
 namespace batteur {
 
 using NoteCallback = std::function<void(int, uint8_t, uint8_t)>;
@@ -52,6 +54,7 @@ private:
     double sampleRate { 48e3 };
     int fillIndex { 0 };
     int partIndex { 0 };
+    std::mutex callbackGuard;
 };
 
 }

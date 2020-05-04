@@ -11,6 +11,8 @@ Player::Player()
 
 bool Player::loadBeatDescription(const BeatDescription& description)
 {
+    const std::unique_lock<std::mutex> lock { callbackGuard };
+    
     if (description.parts.empty())
         return false;
 
@@ -126,6 +128,10 @@ void Player::updateState()
 
 void Player::tick(int sampleCount)
 {
+    const std::unique_lock<std::mutex> lock { callbackGuard, std::try_to_lock };
+    if (!lock.owns_lock())
+        return;
+
     if (!currentBeat)
         return;
 
