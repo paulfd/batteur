@@ -26,6 +26,8 @@ void Player::reset()
     state = State::Stopped;
     position = 0.0;
     queuedSequences.clear();
+    fillIndex = 0;
+    partIndex = 0;
 }
 
 bool Player::start()
