@@ -37,6 +37,7 @@
 #include "lv2/state/state.h"
 #include "lv2/urid/urid.h"
 #include "lv2/worker/worker.h"
+#include "lv2/time/time.h"
 #include "lv2/log/logger.h"
 #include "lv2/log/log.h"
 
@@ -104,6 +105,10 @@ typedef struct
     LV2_URID patch_property_uri;
     LV2_URID patch_value_uri;
     LV2_URID patch_body_uri;
+    LV2_URID time_position_uri;
+    LV2_URID time_bar_beat_uri;
+    LV2_URID time_bpm_uri;
+    LV2_URID time_speed_uri;
     LV2_URID state_changed_uri;
     LV2_URID beat_description_uri;
     LV2_URID main_switch_uri;
@@ -117,6 +122,9 @@ typedef struct
     bool expect_nominal_block_length;
     char beat_file_path[MAX_PATH_SIZE];
     int max_block_size;
+    float bpm;
+    float speed;
+    float beat;
     bool playing;
     int64_t last_main_up;
     int64_t last_main_down;
@@ -150,6 +158,10 @@ batteur_map_required_uris(batteur_plugin_t* self)
     self->patch_property_uri = map->map(map->handle, LV2_PATCH__property);
     self->patch_value_uri = map->map(map->handle, LV2_PATCH__value);
     self->state_changed_uri = map->map(map->handle, LV2_STATE__StateChanged);
+    self->time_position_uri = map->map(map->handle, LV2_TIME__Position);
+    self->time_bar_beat_uri = map->map(map->handle, LV2_TIME__barBeat);
+    self->time_bpm_uri = map->map(map->handle, LV2_TIME__beatsPerMinute);
+    self->time_speed_uri = map->map(map->handle, LV2_TIME__speed);
     self->beat_description_uri = map->map(map->handle, batteur__beatDescription);
     self->main_switch_uri = map->map(map->handle, batteur__mainSwitch);
     self->status_uri = map->map(map->handle, batteur__status);
@@ -227,6 +239,9 @@ instantiate(const LV2_Descriptor* descriptor,
     self->beat_file_path[0] = '\0';
     self->playing = false;
     self->last_main_up = 0;
+    self->beat = 0.0f;
+    self->bpm = 120.0f;
+    self->speed = 1.0f;
     self->last_main_down = -(int64_t)(SWITCH_DURATION * rate);
     self->nextBeat = NULL;
 
@@ -524,6 +539,35 @@ handle_patch_get(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t fra
 }
 
 static void
+set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
+{
+    LV2_Atom *beat = NULL;
+    LV2_Atom *bpm = NULL;
+    LV2_Atom *speed = NULL;
+    lv2_atom_object_get(obj,
+                        self->time_bar_beat_uri, &beat,
+                        self->time_bpm_uri, &bpm,
+                        self->time_speed_uri, &speed,
+                        NULL);
+
+    if (bpm && bpm->type == self->atom_float_uri) {
+        // Tempo changed, update BPM
+        self->bpm = ((LV2_Atom_Float*)bpm)->body;
+        batteur_set_tempo(self->player, self->bpm);
+    }
+    if (speed && speed->type == self->atom_float_uri) {
+        // Speed changed, e.g. 0 (stop) to 1 (play)
+        self->speed = ((LV2_Atom_Float*)speed)->body;
+        if (self->speed == 0.0f)
+            batteur_all_off(self->player);
+    }
+    if (beat && beat->type == self->atom_float_uri) {
+        self->beat = ((LV2_Atom_Float*)beat)->body;
+        lv2_log_note(&self->logger, "Beat not handled: %.4f\n", self->beat);
+    }
+}
+
+static void
 run(LV2_Handle instance, uint32_t sample_count)
 {
     batteur_plugin_t* self = (batteur_plugin_t*)instance;
@@ -546,6 +590,8 @@ run(LV2_Handle instance, uint32_t sample_count)
                 handle_patch_set(self, obj, ev->time.frames);
             } else if (obj->body.otype == self->patch_get_uri) {
                 handle_patch_get(self, obj, ev->time.frames);
+            } else if (obj->body.otype == self->time_position_uri) {
+                set_tempo(self, obj);
             } else {
                 lv2_log_warning(&self->logger, "Got an Object atom but it was not supported.\n");
                 if (self->unmap)
