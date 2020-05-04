@@ -217,24 +217,30 @@ void Player::tick(int sampleCount)
         if (enteringFillInState()) {
             const auto barStart = barStartedAt(position);
             const auto relPosition = position - barStart;
-            const auto barThreshold = static_cast<double>(currentBeat->quartersPerBar) - 1;
+            const auto qpb = static_cast<double>(currentBeat->quartersPerBar);
+            const auto barThreshold = qpb - 1;
             const auto relFillStart = queuedSequences[1]->front().timestamp;
-            // DBG("Could start fill in; relative position {:.2f}, fill start at {:.2f}", relPosition, relFillStart);
+            DBG("Could start fill in; relative position {:.2f}, fill start at {:.2f}", relPosition, relFillStart);
             if (relPosition > barThreshold) {
-                if(relFillStart > barThreshold) {
-                    // DBG("Fill-in has a short bar; starting fill-in now");
+                if(relFillStart > barThreshold && relFillStart < relPosition && relFillStart < qpb) {
+                    DBG("Fill-in has a short bar; starting fill-in now");
                     eraseFrontSequence();
                     continue;
                 }
-                // DBG("Deferring fill in next bar");
+                DBG("Deferring fill in next bar");
             } else {
-                // DBG("Starting fill-in now", position);
-                eraseFrontSequence();
+                if (relFillStart < relPosition) {
+                    DBG("Starting fill-in now", position);
+                    eraseFrontSequence();
+                    continue;
+                }
+
                 if (relFillStart > barThreshold) {
-                    // DBG("Fill-in has a short bar; skipping the first fill bar");
+                    DBG("Fill-in has a short bar; skipping the first fill bar");
+                    eraseFrontSequence();
                     movePosition(static_cast<double>(currentBeat->quartersPerBar));
-                } 
-                continue;
+                    continue;
+                }
             }
         }
 
@@ -243,7 +249,7 @@ void Player::tick(int sampleCount)
             break;
         }
 
-#if 0
+#if 1
         DBG("Seq: {} | Pos/BlockEnd: {:2.2f}/{:2.2f} | current note (index/time/duration) : {}/{:.2f}/{:.2f}",
             queuedSequences.size(), 
             position,
