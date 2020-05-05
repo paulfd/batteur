@@ -33,7 +33,6 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
 
     fmidi_smf_u midiFile { fmidi_smf_file_read(filepath.c_str()) };
     if (!midiFile) {
-        DBG("Cannot read file {} from root directory {}", json["filename"].get<std::string>(), rootDirectory.native());
         return tl::make_unexpected(MidiFileError::MidiFileError);
     }
     batteur::Sequence returned;
@@ -136,7 +135,9 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
 #if 0
     DBG("Note NUM: TIME (DURATION)");
     for (auto& note : returned) {
-        DBG("Note {} : {:.2f} ({:.2f})", +note.number, note.timestamp, note.duration );
+        DBG("Note " << +note.number 
+            << ": " << note.timestamp
+            << "(" << note.duration << ")");
     }
 #endif
     return returned;

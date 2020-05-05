@@ -8,8 +8,7 @@
 
 #ifndef NDEBUG
 #include <iostream>
-#include <fmt/ostream.h>
-#include <fmt/format.h>
+
 #if (__linux__ || __unix__)
 
 // Break in source code
@@ -49,7 +48,7 @@
     while (0)
 
 // Debug message
-#define DBG(...) do { fmt::print(__VA_ARGS__); fmt::print("\n"); } while (0)
+#define DBG(ostream) do { std::cerr << ostream << '\n'; } while (0)
 
 #else // NDEBUG
 

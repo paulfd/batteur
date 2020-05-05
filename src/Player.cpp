@@ -90,7 +90,6 @@ void Player::_next()
     if (enteringFillInState()) {
         queuedSequences.pop_back(); // Remove the back (which should be the next part)
         if (currentTransition) {
-            DBG("Adding a transition");
             queuedSequences.pop_back();
             queuedSequences.push_back(&currentTransition.value());
         }
@@ -98,7 +97,6 @@ void Player::_next()
         queuedSequences.pop_back(); // Remove the back (which should be the next part)
     } else {
         if (currentTransition) {
-            DBG("Adding a transition");
             queuedSequences.push_back(&currentTransition.value());
         }
     }
@@ -220,7 +218,8 @@ void Player::tick(int sampleCount)
             const auto qpb = static_cast<double>(currentBeat->quartersPerBar);
             const auto barThreshold = qpb - 1;
             const auto relFillStart = queuedSequences[1]->front().timestamp;
-            DBG("Could start fill in; relative position {:.2f}, fill start at {:.2f}", relPosition, relFillStart);
+            DBG("Could start fill in; relative position: " << relPosition
+                << ", fill start at " << relFillStart);
             if (relPosition > barThreshold) {
                 if(relFillStart > barThreshold && relFillStart < relPosition && relFillStart < qpb) {
                     DBG("Fill-in has a short bar; starting fill-in now");
@@ -230,7 +229,7 @@ void Player::tick(int sampleCount)
                 DBG("Deferring fill in next bar");
             } else {
                 if (relFillStart < relPosition) {
-                    DBG("Starting fill-in now", position);
+                    DBG("Starting fill-in now");
                     eraseFrontSequence();
                     continue;
                 }
@@ -250,13 +249,11 @@ void Player::tick(int sampleCount)
         }
 
 #if 1
-        DBG("Seq: {} | Pos/BlockEnd: {:2.2f}/{:2.2f} | current note (index/time/duration) : {}/{:.2f}/{:.2f}",
-            queuedSequences.size(), 
-            position,
-            blockEnd,
-            std::distance(queuedSequences.front()->begin(), noteIt),
-            noteIt->timestamp,
-            noteIt->duration);
+        DBG("Seq: " << queuedSequences.size()
+            << " | Pos/BlockEnd: " << position << "/" << blockEnd
+            << " | current note (index/time/duration) : "
+            << std::distance(queuedSequences.front()->begin(), noteIt) << "/"
+            << noteIt->timestamp << "/" << noteIt->duration);
 #endif
 
         const int noteOnDelay = midiDelay(noteIt->timestamp);

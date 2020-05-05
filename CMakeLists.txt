@@ -11,17 +11,10 @@ option (BATTEUR_LV2               "Enable LV2 plug-in build [default: ON]" OFF)
 option (BATTEUR_TESTS             "Enable tests build [default: OFF]" OFF)
 option (BATTEUR_SHARED            "Enable shared library build [default: ON]" ON)
 option (BATTEUR_STATIC            "Enable static library build [default: ON]" ON)
-option (BATTEUR_SYSTEM_FMT        "Use the system libfmt [default: ON]" ON)
 
-if (NOT BATTEUR_SYSTEM_FMT)
-    add_subdirectory(src/fmt EXCLUDE_FROM_ALL)
-    # Add PIC to the fmt library
-    set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    # Alias it for fmidi
-    add_library(fmidi-fmt ALIAS fmt)
-endif()
-
-add_subdirectory(src/fmidi EXCLUDE_FROM_ALL)
+add_library(fmidi STATIC "src/fmidi/fmidi_mini.cpp")
+target_include_directories(fmidi PUBLIC "src")
+target_compile_definitions(fmidi PUBLIC "FMIDI_STATIC=1" "FMIDI_DISABLE_DESCRIBE_API=1")
 
 ### Main lib
 set (BATTEUR_SOURCES
@@ -31,7 +24,7 @@ set (BATTEUR_SOURCES
 )
 
 add_library(batteur_objects OBJECT ${BATTEUR_SOURCES})
-target_link_libraries(batteur_objects PUBLIC fmt fmidi)
+target_link_libraries(batteur_objects PUBLIC fmidi)
 target_include_directories(batteur_objects PUBLIC src)
 set_target_properties(batteur_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
