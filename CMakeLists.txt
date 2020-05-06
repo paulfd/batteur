@@ -14,6 +14,7 @@ option (BATTEUR_STATIC            "Enable static library build [default: ON]" ON
 add_library(fmidi STATIC "src/fmidi/fmidi_mini.cpp")
 target_include_directories(fmidi PUBLIC "src")
 target_compile_definitions(fmidi PUBLIC "FMIDI_STATIC=1" "FMIDI_DISABLE_DESCRIBE_API=1")
+set_target_properties(fmidi PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 ### Main lib
 set (BATTEUR_SOURCES

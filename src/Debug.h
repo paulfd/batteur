@@ -8,6 +8,7 @@
 
 #ifndef NDEBUG
 #include <iostream>
+#include <iomanip>
 
 #if (__linux__ || __unix__)
 
@@ -48,7 +49,7 @@
     while (0)
 
 // Debug message
-#define DBG(ostream) do { std::cerr << ostream << '\n'; } while (0)
+#define DBG(ostream) do { std::cerr << std::setprecision(2) << ostream << '\n'; } while (0)
 
 #else // NDEBUG
 
