@@ -202,6 +202,11 @@ batteur_callback(int delay, uint8_t number, uint8_t value, void* cbdata)
         .size = sizeof(msg)
     };
 
+    if (delay < 0) {
+        lv2_log_error(&self->logger, "Negative delay in callback: %d\n", delay);
+        delay = 0;
+    }
+
 	if (!lv2_atom_forge_frame_time(&self->forge, delay))
         return;
 
