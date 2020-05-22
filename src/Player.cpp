@@ -203,6 +203,7 @@ void Player::tick(int sampleCount)
             }
 
             blockEnd -= sequenceDuration;
+            blockStart -= sequenceDuration; // will be negative but it's OK!
             position = 0.0;
 
             if (state == State::Ending) {
