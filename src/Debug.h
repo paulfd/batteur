@@ -49,7 +49,7 @@
     while (0)
 
 // Debug message
-#define DBG(ostream) do { std::cerr << std::setprecision(2) << ostream << '\n'; } while (0)
+#define DBG(ostream) do { std::cerr << std::fixed << std::setprecision(2) << ostream << '\n'; } while (0)
 
 #else // NDEBUG
 
