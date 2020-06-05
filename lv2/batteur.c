@@ -638,7 +638,7 @@ lv2_set_options(LV2_Handle instance, const LV2_Options_Option* options)
                 continue;
             }
             self->sample_rate = *(float*)opt->value;
-            // sfizz_set_sample_rate(self->synth, self->sample_rate);
+            batteur_set_sample_rate(self->player, self->sample_rate);
         } else if (!self->expect_nominal_block_length && opt->key == self->max_block_length_uri) {
             if (opt->type != self->atom_int_uri) {
                 lv2_log_warning(&self->logger, "Got a max block size but the type was wrong\n");
