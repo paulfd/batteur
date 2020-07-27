@@ -24,14 +24,6 @@
       rdfs:label "Status" ; 
       rdfs:range atom:String .
 
-<@LV2PLUGIN_URI@:mainSwitch>
-	a lv2:Parameter ; 
-	rdfs:label "Main control" ;
-	rdfs:range atom:Bool ;
-	lv2:portProperty lv2:toggled;
-	lv2:portProperty pprops:trigger;
-	lv2:default 0 .
-
 <@LV2PLUGIN_URI@>
 	a doap:Project, lv2:Plugin ;
 	doap:name "@LV2PLUGIN_NAME@" ;
@@ -49,8 +41,7 @@
 	lv2:extensionData opts:interface, state:interface, work:interface ;
 	
 	patch:writable 
-        <@LV2PLUGIN_URI@:beatDescription>, 
-        <@LV2PLUGIN_URI@:mainSwitch>;
+        <@LV2PLUGIN_URI@:beatDescription>;
 	patch:readable 
         <@LV2PLUGIN_URI@:beatDescription>,
         <@LV2PLUGIN_URI@:status>;
@@ -70,4 +61,25 @@
 		lv2:index 1 ;
 		lv2:symbol "out" ;
 		lv2:name "Output" ;
-    ] .
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 2 ;
+		lv2:symbol "main" ;
+		lv2:name "Main Switch" ;
+		lv2:property lv2:toggled ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 3 ;
+		lv2:symbol "accent" ;
+		lv2:name "Accent Switch" ;
+		lv2:property lv2:trigger ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 4 ;
+		lv2:symbol "accentnote" ;
+		lv2:name "Accent note" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 49 ;
+		lv2:minimum 0 ;
+		lv2:maximum 127 ;
+    ].

@@ -63,6 +63,8 @@
 #define MAX_PATH_SIZE 1024
 #define UNUSED(x) (void)(x)
 #define SWITCH_DURATION 0.75
+#define DEFAULT_ACCENT_NOTE 49
+#define DEFAULT_ACCENT_VELOCITY 100
 
 typedef struct
 {
@@ -78,6 +80,7 @@ typedef struct
     const float* output_channel_p;
     const float* main_p;
     const float* accent_p;
+    const float* accent_note_p;
 
     // Atom forge
     LV2_Atom_Forge forge; ///< Forge for writing atoms in run thread
@@ -120,12 +123,14 @@ typedef struct
     batteur_beat_t* nextBeat;
     batteur_player_t* player;
     bool expect_nominal_block_length;
+    float main_switch_status;
+    bool accent_pressed;
     char beat_file_path[MAX_PATH_SIZE];
     int max_block_size;
+    int accent_note;
     float bpm;
     float speed;
     float beat;
-    bool playing;
     int64_t last_main_up;
     int64_t last_main_down;
     double sample_rate;
@@ -134,6 +139,9 @@ typedef struct
 enum {
     INPUT_PORT = 0,
     OUTPUT_PORT,
+    MAIN_PORT,
+    ACCENT_PORT,
+    ACCENT_NOTE_PORT,
 };
 
 static void
@@ -181,6 +189,15 @@ connect_port(LV2_Handle instance,
     case OUTPUT_PORT:
         self->output_p = (LV2_Atom_Sequence*)data;
         break;
+    case MAIN_PORT:
+        self->main_p = (const float*)data;
+        break;
+    case ACCENT_PORT:
+        self->accent_p = (const float*)data;
+        break;
+    case ACCENT_NOTE_PORT:
+        self->accent_note_p = (const float*)data;
+        break;
     default:
         break;
     }
@@ -227,7 +244,7 @@ instantiate(const LV2_Descriptor* descriptor,
 {
     UNUSED(descriptor);
     UNUSED(path);
-    LV2_Options_Option* options;
+    LV2_Options_Option* options = NULL;
     bool supports_bounded_block_size = false;
     bool options_has_block_size = false;
     bool supports_fixed_block_size = false;
@@ -242,11 +259,13 @@ instantiate(const LV2_Descriptor* descriptor,
     self->sample_rate = rate;
     self->expect_nominal_block_length = false;
     self->beat_file_path[0] = '\0';
-    self->playing = false;
+    self->accent_pressed = false;
     self->last_main_up = 0;
     self->beat = 0.0f;
     self->bpm = 120.0f;
     self->speed = 1.0f;
+    self->main_switch_status = 0.0f;
+    self->accent_note = DEFAULT_ACCENT_NOTE;
     self->last_main_down = -(int64_t)(SWITCH_DURATION * rate);
     self->nextBeat = NULL;
 
@@ -301,7 +320,7 @@ instantiate(const LV2_Descriptor* descriptor,
 
     // Check the options for the block size and sample rate parameters
     if (options) {
-        for (const LV2_Options_Option* opt = options; opt->value; ++opt) {
+        for (const LV2_Options_Option* opt = options; opt->key || opt->value; ++opt) {
             if (opt->key == self->sample_rate_uri) {
                 if (opt->type != self->atom_float_uri) {
                     lv2_log_warning(&self->logger, "Got a sample rate but the type was wrong\n");
@@ -356,18 +375,13 @@ cleanup(LV2_Handle instance)
 static void
 activate(LV2_Handle instance)
 {
-    batteur_plugin_t* self = (batteur_plugin_t*)instance;
-    if (self->beat_file_path && strlen(self->beat_file_path) > 0) {
-        lv2_log_note(&self->logger, "Current file is: %s\n", self->beat_file_path);
-    }
+    UNUSED(instance);
 }
 
 static void
 deactivate(LV2_Handle instance)
 {
     UNUSED(instance);
-    // batteur_plugin_t *self = (batteur_plugin_t *)instance;
-    // sfizz_free(self->synth);
 }
 
 static void
@@ -414,7 +428,7 @@ send_status(batteur_plugin_t* self)
     lv2_atom_forge_key(&self->forge, self->patch_property_uri);
     lv2_atom_forge_urid(&self->forge, self->status_uri);
     lv2_atom_forge_key(&self->forge, self->patch_value_uri);
-    if (self->playing)
+    if (self->main_switch_status)
         lv2_atom_forge_string(&self->forge, MAIN_SWITCH_ON, strlen(MAIN_SWITCH_ON));
     else
         lv2_atom_forge_string(&self->forge, MAIN_SWITCH_OFF, strlen(MAIN_SWITCH_OFF));
@@ -423,17 +437,16 @@ send_status(batteur_plugin_t* self)
 }
 
 static void
-main_switch_event(batteur_plugin_t* self, const LV2_Atom* atom, int64_t frame)
+main_switch_event(batteur_plugin_t* self, float switch_status)
 {
-    const uint32_t switch_status = *(uint32_t*)LV2_ATOM_BODY_CONST(atom);
-    if (switch_status == 1) {
-        self->last_main_up = -frame;
-    } else if (switch_status == 0) {
+    if (switch_status == 1.0f) {
+        self->last_main_up = 0;
+    } else if (switch_status == 0.0f) {
         const double since_switch_pressed = 
-            (double)(frame + self->last_main_up) / self->sample_rate;
+            (double)(self->last_main_up) / self->sample_rate;
 
         const double since_last_down = 
-            (double)(frame + self->last_main_down) / self->sample_rate;
+            (double)(self->last_main_down) / self->sample_rate;
 
         lv2_log_note(&self->logger, 
                     "[run] Main switch down (%.3f s since switch pressed)\n",
@@ -455,7 +468,7 @@ main_switch_event(batteur_plugin_t* self, const LV2_Atom* atom, int64_t frame)
             batteur_start(self->player);
         }
         
-        self->last_main_down = -frame;
+        self->last_main_down = 0;
     }
 }
 
@@ -484,6 +497,7 @@ beat_description_event(batteur_plugin_t* self, const LV2_Atom* atom)
 static void
 handle_patch_set(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t frame)
 {
+    UNUSED(frame);
     const LV2_Atom* property = NULL;
     lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
     if (!property) {
@@ -510,9 +524,6 @@ handle_patch_set(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t fra
 
     if (key == self->beat_description_uri) {
         beat_description_event(self, atom);
-    } else if (key == self->main_switch_uri) {
-        main_switch_event(self, atom, frame);
-        send_status(self);
     } else {
         lv2_log_warning(&self->logger, "[handle_object] Unknown or unsupported object.\n");
         if (self->unmap)
@@ -611,6 +622,22 @@ run(LV2_Handle instance, uint32_t sample_count)
         }
     }
 
+    if (*self->main_p != self->main_switch_status) {
+        main_switch_event(self, *self->main_p);
+        self->main_switch_status = *self->main_p;
+        send_status(self);
+    }
+
+    if (*self->accent_p) {
+        if (!self->accent_pressed) {
+            lv2_log_warning(&self->logger, "Accent!\n");
+            batteur_callback(0, (uint8_t)*self->accent_note_p, DEFAULT_ACCENT_VELOCITY, self);
+            self->accent_pressed = true;
+        }
+    } else {
+        self->accent_pressed = false;
+    }
+
     self->last_main_up += sample_count;
     self->last_main_down += sample_count;
     batteur_tick(self->player, sample_count);
@@ -676,7 +703,7 @@ restore(LV2_Handle instance,
     const void* value;
     value = retrieve(handle, self->beat_description_uri, &size, &type, &val_flags);
     if (value) {
-        lv2_log_note(&self->logger, "Restoring the file %s\n", (const char*)value);
+        // lv2_log_note(&self->logger, "Restoring the file %s\n", (const char*)value);
         batteur_beat_t* beat = batteur_load_beat((const char *)value);
         if (beat) {
             strcpy(self->beat_file_path, (const char *)value);
@@ -731,7 +758,7 @@ work(LV2_Handle instance,
     const LV2_Atom* atom = (const LV2_Atom*)data;
     if (atom->type == self->beat_description_uri) {
         const char* file_path = LV2_ATOM_BODY_CONST(atom);
-        lv2_log_note(&self->logger, "[work] Loading file: %s\n", file_path);
+        // lv2_log_note(&self->logger, "[work] Loading file: %s\n", file_path);
         batteur_beat_t* beat = batteur_load_beat(file_path);
         if (beat) {
             self->nextBeat = beat;
@@ -772,7 +799,7 @@ work_response(LV2_Handle instance,
                 strcpy(self->beat_file_path, beat_file_path);
             }
         }
-        lv2_log_note(&self->logger, "[work_response] File changed to: %s\n", self->beat_file_path);
+        // lv2_log_note(&self->logger, "[work_response] File changed to: %s\n", self->beat_file_path);
     } else {
         lv2_log_error(&self->logger, "[work_response] Got an unknown atom.\n");
         if (self->unmap)
