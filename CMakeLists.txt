@@ -32,6 +32,7 @@ if (BATTEUR_STATIC)
     add_library(batteur_static STATIC src/wrapper.cpp)
     target_link_libraries(batteur_static PRIVATE batteur_objects)
     target_include_directories(batteur_static PUBLIC src)
+    set_target_properties(batteur_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
     add_library(batteur::batteur ALIAS batteur_static)
 endif()
 
