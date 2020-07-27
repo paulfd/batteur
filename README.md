@@ -5,7 +5,9 @@ It contains both a shared library version and an LV2 plugin.
 It is meant to be used with a drum sound generator within a more global LV2 or Jack session.
 
 Yet to do:
+- C API documentation
 - Update tests and harden the thing
+- Add a way to have a monolithic file format that include both the beat description and midi data, either through tar, a non-compressed zip, or a raw JSON description of the midi events
 - Refine the handling of the LV2 time extension for synchronization with the host tempo and time grid
 - UI, although these are in other projects
 
