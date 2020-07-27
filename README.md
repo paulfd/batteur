@@ -6,6 +6,7 @@ It is meant to be used with a drum sound generator within a more global LV2 or J
 
 Yet to do:
 - Update tests and harden the thing
+- Add a way to have a monolithic file format that include both the beat description and midi data, either through tar, a non-compressed zip, or a raw JSON description of the midi events
 - Refine the handling of the LV2 time extension for synchronization with the host tempo and time grid
 - UI, although these are in other projects
 
