@@ -12,6 +12,11 @@ enum class ReadingError {
     WrongIgnoreBars,
     WrongBars,
     ZeroBars,
+    WrongNoteListFormat,
+    WrongTimeFormat,
+    WrongNoteDuration,
+    WrongNoteNumber,
+    WrongNoteValue,
     NoDataRead
 };
 

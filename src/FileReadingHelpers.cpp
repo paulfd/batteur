@@ -1,6 +1,7 @@
 #include "FileReadingHelpers.h"
 #include "MathHelpers.h"
 #include "MidiHelpers.h"
+#include <algorithm>
 
 tl::optional<unsigned> getQuarterPerBars(const fmidi_event_t& evt)
 {
@@ -136,9 +137,55 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromFile(nlohmann::jso
     return returned;
 }
 
-tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(nlohmann::json& json)
+tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(nlohmann::json& notes)
 {
-    return tl::make_unexpected(ReadingError::NoDataRead);
+    if (!notes.is_array())
+        return tl::make_unexpected(ReadingError::WrongNoteListFormat);
+
+    batteur::Sequence returned;
+
+    for (auto& note: notes) {
+        const auto timeField = note["time"];
+        if (timeField.is_null() || !timeField.is_number_float())
+            return tl::make_unexpected(ReadingError::WrongTimeFormat);
+        const auto time = timeField.get<double>();
+        if (time < 0.0)
+            return tl::make_unexpected(ReadingError::WrongTimeFormat);
+
+        const auto durationField = note["duration"];
+        if (durationField.is_null() || !durationField.is_number_float())
+            return tl::make_unexpected(ReadingError::WrongNoteDuration);
+        const auto duration = durationField.get<double>();
+        if (duration < 0.0)
+            return tl::make_unexpected(ReadingError::WrongNoteDuration);
+
+        const auto numberField = note["number"];
+        if (numberField.is_null() || !numberField.is_number_integer())
+            return tl::make_unexpected(ReadingError::WrongNoteNumber);
+        const auto number = numberField.get<uint8_t>();
+        if (number > 127)
+            return tl::make_unexpected(ReadingError::WrongNoteNumber);
+
+        const auto valueField = note["value"];
+        if (valueField.is_null() || !valueField.is_number_integer())
+            return tl::make_unexpected(ReadingError::WrongNoteValue);
+        const auto value = valueField.get<uint8_t>();
+        if (value > 127)
+            return tl::make_unexpected(ReadingError::WrongNoteValue);
+
+
+        returned.push_back({ time, duration, number, value });
+    }
+
+    if (returned.empty())
+        return tl::make_unexpected(ReadingError::NoDataRead);
+
+    const auto timestampComparator = [](const batteur::Note& lhs, const batteur::Note& rhs) {
+        return lhs.timestamp < rhs.timestamp;
+    };
+    std::sort(returned.begin(), returned.end(), timestampComparator);
+
+    return returned;
 }
 
 
@@ -151,11 +198,9 @@ tl::expected<batteur::Sequence, ReadingError> readSequence(nlohmann::json& json,
     if (json.contains("filename"))
         return readSequenceFromFile(json, rootDirectory);
     else if (json.contains("notes"))
-        return readSequenceFromNoteList(json);
+        return readSequenceFromNoteList(json["notes"]);
     else
-        return tl::make_unexpected(ReadingError::NotPresent);
-
-    
+        return tl::make_unexpected(ReadingError::NotPresent);    
 }
 
 tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)
