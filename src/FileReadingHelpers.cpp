@@ -20,34 +20,27 @@ tl::optional<double> getSecondsPerQuarter(const fmidi_event_t& evt)
     return 1e-6 * tempo;
 }
 
-// Note that the passed file should not be const
-tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json, const fs::path& rootDirectory)
+tl::expected<batteur::Sequence, ReadingError> readSequenceFromFile(nlohmann::json& json, const fs::path& rootDirectory)
 {
-    if (json.is_null())
-        return tl::make_unexpected(MidiFileError::NotPresent);
-
-    if (!json.contains("filename"))
-        return tl::make_unexpected(MidiFileError::NoFilename);
-
     fs::path filepath = rootDirectory / json["filename"].get<std::string>();
 
     fmidi_smf_u midiFile { fmidi_smf_file_read(filepath.c_str()) };
     if (!midiFile) {
-        return tl::make_unexpected(MidiFileError::MidiFileError);
+        return tl::make_unexpected(ReadingError::MidiFileError);
     }
     batteur::Sequence returned;
 
     const auto ib = json["ignore_bars"];
     if (!ib.is_null() && !ib.is_number_unsigned())
-        return tl::make_unexpected(MidiFileError::WrongIgnoreBars);
+        return tl::make_unexpected(ReadingError::WrongIgnoreBars);
     const unsigned ignoreBars { ib.is_null() ? 0 : ib.get<unsigned>() };
 
     const auto b = json["bars"];
     if (!b.is_null()) {
         if (!b.is_number_unsigned())
-            return tl::make_unexpected(MidiFileError::WrongBars);
+            return tl::make_unexpected(ReadingError::WrongBars);
         if (b.get<unsigned>() == 0)
-            return tl::make_unexpected(MidiFileError::ZeroBars);
+            return tl::make_unexpected(ReadingError::ZeroBars);
     }
     // Zero has a meaning internally
     const unsigned bars { b.is_null() ? 0 : b.get<unsigned>() };
@@ -126,7 +119,7 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     }
 
     if (returned.empty())
-        return tl::make_unexpected(MidiFileError::NoDataRead);
+        return tl::make_unexpected(ReadingError::NoDataRead);
 
     for (auto& note : returned) {
         note.timestamp -= ignoredQuarters;
@@ -141,6 +134,28 @@ tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json
     }
 #endif
     return returned;
+}
+
+tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(nlohmann::json& json)
+{
+    return tl::make_unexpected(ReadingError::NoDataRead);
+}
+
+
+// Note that the passed file should not be const
+tl::expected<batteur::Sequence, ReadingError> readSequence(nlohmann::json& json, const fs::path& rootDirectory)
+{
+    if (json.is_null())
+        return tl::make_unexpected(ReadingError::NotPresent);
+
+    if (json.contains("filename"))
+        return readSequenceFromFile(json, rootDirectory);
+    else if (json.contains("notes"))
+        return readSequenceFromNoteList(json);
+    else
+        return tl::make_unexpected(ReadingError::NotPresent);
+
+    
 }
 
 tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)

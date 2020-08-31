@@ -91,57 +91,57 @@ TEST_CASE("[Files] ReadMidiFile errors")
     SECTION("Empty")
     {
         auto j = "{}"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::NoFilename );
+        REQUIRE( f.error() == ReadingError::NotPresent );
     }
 
     SECTION("Badly written filename")
     {
         auto j = "{\"filenam\": \"wat\"}"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::NoFilename );
+        REQUIRE( f.error() == ReadingError::NotPresent );
     }
 
     SECTION("Nonexistent file")
     {
         auto j = "{\"filename\": \"nonexistent_file.midi\"}"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::MidiFileError );
+        REQUIRE( f.error() == ReadingError::MidiFileError );
     }
 
     SECTION("Bad ignore_bars")
     {
-        auto j = R"({"filename": "Ballads/Song 13 088 Samples/Grooves/088 S13 Intro.mid", "ignore_bars": -4})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        auto j = R"({"filename": "test_file_1.mid", "ignore_bars": -4})"_json;
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::WrongIgnoreBars );
+        REQUIRE( f.error() == ReadingError::WrongIgnoreBars );
     }
 
     SECTION("Bad bars")
     {
-        auto j = R"({"filename": "Ballads/Song 13 088 Samples/Grooves/088 S13 Intro.mid", "bars": -4})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        auto j = R"({"filename": "test_file_1.mid", "bars": -4})"_json;
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::WrongBars );
+        REQUIRE( f.error() == ReadingError::WrongBars );
     }
 
     SECTION("No remaining notes")
     {
-        auto j = R"({"filename": "Ballads/Song 13 088 Samples/Grooves/088 S13 Intro.mid", "ignore_bars": 60})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        auto j = R"({"filename": "test_file_1.mid", "ignore_bars": 60})"_json;
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::NoDataRead );
+        REQUIRE( f.error() == ReadingError::NoDataRead );
     }
 
     SECTION("No remaining notes 2")
     {
         auto j = R"({"filename": "test_file_2.mid", "ignore_bars": 1, "bars": 1})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( !f.has_value() );
-        REQUIRE( f.error() == MidiFileError::NoDataRead );
+        REQUIRE( f.error() == ReadingError::NoDataRead );
     }
 }
 
@@ -150,7 +150,7 @@ TEST_CASE("[Files] ReadMidiFile files")
     SECTION("Test file 1")
     {
         auto j = R"({"filename": "test_file_1.mid"})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 5 );
         REQUIRE( batteur::barCount(*f, 4) == 2);
@@ -159,7 +159,7 @@ TEST_CASE("[Files] ReadMidiFile files")
     SECTION("Test file 1 - Ignore 1")
     {
         auto j = R"({"filename": "test_file_1.mid", "ignore_bars": 1})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 4 );
         REQUIRE( batteur::barCount(*f, 4) == 1);
@@ -168,7 +168,7 @@ TEST_CASE("[Files] ReadMidiFile files")
     SECTION("Test file 2")
     {
         auto j = R"({"filename": "test_file_2.mid"})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f->size() == 5 );
         REQUIRE( batteur::barCount(*f, 4) == 4);
@@ -177,7 +177,7 @@ TEST_CASE("[Files] ReadMidiFile files")
     SECTION("Test file 3")
     {
         auto j = R"({"filename": "test_file_3.mid"})"_json;
-        const auto f = readMidiFile(j, fs::current_path() / "tests/files/" );
+        const auto f = readSequence(j, fs::current_path() / "tests/files/" );
         REQUIRE( f.has_value() );
         REQUIRE( f.value().size() == 16 );
         REQUIRE( batteur::barCount(*f, 4) == 4);

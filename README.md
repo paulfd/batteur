@@ -26,7 +26,7 @@ This is how it should look for now:
     "parts": [
         {
             "name": "Hats",
-            "midi_file" : { "filename" : "Grooves/160 Surf 42TF Hat.mid", "ignore_bars" : 1, "bars": 4 },
+            "sequence" : { "filename" : "Grooves/160 Surf 42TF Hat.mid", "ignore_bars" : 1, "bars": 4 },
             "fills": [
                 { "filename" : "Hat Fills/160 Surf 42TF Hat Fill 1.mid" },
                 { "filename" : "Hat Fills/160 Surf 42TF Hat Fill 2.mid" },
@@ -38,7 +38,7 @@ This is how it should look for now:
         },
         {
             "name": "Ride",
-            "midi_file" : { "filename" : "Grooves/160 Surf 42TF Ride.mid", "ignore_bars" : 1 , "bars": 4},
+            "sequence" : { "filename" : "Grooves/160 Surf 42TF Ride.mid", "ignore_bars" : 1 , "bars": 4},
             "fills": [
                 { "filename" : "Ride Fills/160 Surf 42TF Ride Fill 1.mid" },
                 { "filename" : "Ride Fills/160 Surf 42TF Ride Fill 2.mid" },

@@ -113,28 +113,28 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
 
     const auto rootDirectory = file.parent_path();
 
-    if (auto seq = readMidiFile(json["intro"], rootDirectory))
+    if (auto seq = readSequence(json["intro"], rootDirectory))
         beat->intro = std::move(*seq);
 
-    if (auto seq = readMidiFile(json["ending"], rootDirectory))
+    if (auto seq = readSequence(json["ending"], rootDirectory))
         beat->ending = std::move(*seq);
 
     for (auto& part : parts) {
         Part newPart;
         newPart.name = part["name"];
-        auto mainLoop = readMidiFile(part["midi_file"], rootDirectory);
+        auto mainLoop = readSequence(part["sequence"], rootDirectory);
         if (!mainLoop)
             continue;
 
         newPart.mainLoop = std::move(*mainLoop);
 
         for (auto& fill : part["fills"]) {
-            if (auto seq = readMidiFile(fill, rootDirectory)) {
+            if (auto seq = readSequence(fill, rootDirectory)) {
                 newPart.fills.push_back(std::move(*seq));
             }
         }
 
-        if (auto seq = readMidiFile(part["transition"], rootDirectory)) {
+        if (auto seq = readSequence(part["transition"], rootDirectory)) {
             newPart.transition = std::move(*seq);
         }
         beat->parts.push_back(std::move(newPart));

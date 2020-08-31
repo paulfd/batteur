@@ -5,7 +5,7 @@
 #include "BeatDescription.h"
 #include "fmidi/fmidi.h"
 
-enum class MidiFileError {
+enum class ReadingError {
     NotPresent,
     NoFilename,
     MidiFileError,
@@ -29,7 +29,7 @@ enum class QuartersPerBarError {
 
 // Helper functions
 
-tl::expected<batteur::Sequence, MidiFileError> readMidiFile(nlohmann::json& json, const fs::path& rootDirectory);
+tl::expected<batteur::Sequence, ReadingError> readSequence(nlohmann::json& json, const fs::path& rootDirectory);
 tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm);
 tl::expected<unsigned, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb);
 

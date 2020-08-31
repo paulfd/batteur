@@ -21,13 +21,16 @@ TEST_CASE("[Files] Nonexistent filename")
 TEST_CASE("[Files] Existing file")
 {
     std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/088 Ballad.json", ec);
+    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/shuffle.json", ec);
+    if (ec)
+        std::cout << ec << std::endl;
     REQUIRE( beat );
-}
-
-TEST_CASE("[Files] Existing file 2 ")
-{
-    std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/080 Slow Blues 12-8.json", ec);
-    REQUIRE( beat );
+    REQUIRE( beat->bpm == 78 );
+    REQUIRE( beat->quartersPerBar == 4 );
+    REQUIRE( beat->intro );
+    REQUIRE( beat->parts.size() == 2 );
+    REQUIRE( beat->parts[0].name == "Snare" );
+    REQUIRE( beat->parts[1].name == "Ride" );
+    REQUIRE( beat->parts[0].fills.size() == 2 );
+    REQUIRE( beat->parts[1].fills.size() == 1 );
 }
