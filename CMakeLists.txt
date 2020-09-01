@@ -8,6 +8,7 @@ include (BatteurConfig)
 
 option (BATTEUR_LV2               "Enable LV2 plug-in build [default: ON]" OFF)
 option (BATTEUR_TESTS             "Enable tests build [default: OFF]" OFF)
+option (BATTEUR_TOOLS             "Enable tools build [default: OFF]" OFF)
 option (BATTEUR_SHARED            "Enable shared library build [default: ON]" ON)
 option (BATTEUR_STATIC            "Enable static library build [default: ON]" ON)
 
@@ -61,4 +62,8 @@ endif()
 
 if (BATTEUR_LV2)
 add_subdirectory (lv2)
+endif()
+
+if (BATTEUR_TOOLS)
+add_subdirectory (tools)
 endif()

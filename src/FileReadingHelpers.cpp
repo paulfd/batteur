@@ -166,7 +166,7 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(nlohmann:
         if (number > 127)
             return tl::make_unexpected(ReadingError::WrongNoteNumber);
 
-        const auto valueField = note["value"];
+        const auto valueField = note["velocity"];
         if (valueField.is_null() || !valueField.is_number_integer())
             return tl::make_unexpected(ReadingError::WrongNoteValue);
         const auto value = valueField.get<uint8_t>();

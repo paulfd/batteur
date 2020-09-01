@@ -31,7 +31,6 @@ struct Part {
     tl::optional<Sequence> transition;
 };
 
-
 struct BeatDescription {
     std::string name;
     std::string group;
@@ -41,8 +40,7 @@ struct BeatDescription {
     std::vector<Part> parts;
     tl::optional<Sequence> ending;
     static std::unique_ptr<BeatDescription> buildFromFile(const fs::path& file, std::error_code& error);
-    void saveMonolithic(const fs::path& jsonDescription);
-    void saveWithSidecars(const fs::path& jsonDescription, const fs::path& sidecarDirectory);
+    std::string saveMonolithic();
 };
 
 enum class BeatDescriptionError {

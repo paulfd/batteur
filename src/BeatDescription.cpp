@@ -77,6 +77,57 @@ void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBa
         note.timestamp += shift;
 }
 
+nlohmann::json serializeNotes(const Sequence& sequence)
+{
+    nlohmann::json json;
+    for (const auto& note: sequence) {
+        nlohmann::json n;
+        n["time"] = note.timestamp;
+        n["duration"] = note.timestamp;
+        n["number"] = note.number;
+        n["velocity"] = note.velocity;
+        json["notes"].push_back(std::move(n));
+    }
+    return json;
+}
+
+nlohmann::json serializePart(const Part& part)
+{
+    nlohmann::json json;
+    json["name"] = part.name;
+    json["sequence"] = serializeNotes(part.mainLoop);
+    for (const auto& fill: part.fills) {
+        json["fills"].push_back(serializeNotes(fill));
+    }
+
+    if (part.transition && !part.transition->empty())
+        json["transition"] = serializeNotes(*part.transition);
+
+    return json;
+}
+
+std::string BeatDescription::saveMonolithic()
+{
+    nlohmann::json json;
+    json["name"] = name;
+    if (group != "")
+        json["group"] = group;
+    
+    json["bpm"] = bpm;
+    json["quarters_per_bar"] = quartersPerBar;
+
+    if (intro && !intro->empty())
+        json["intro"] = serializeNotes(*intro);
+
+    if (ending && !ending->empty())
+        json["ending"] = serializeNotes(*ending);
+
+    for (const auto& part: parts)
+        json["parts"].push_back(serializePart(part));
+
+    return json.dump(2);
+}
+
 std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& file, std::error_code& error)
 {
     if (!fs::exists(file)) {
