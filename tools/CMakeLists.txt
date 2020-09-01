@@ -1,5 +1,6 @@
+find_package(fmt)
 add_executable(batteur-serialize serialize.cpp)
-target_link_libraries (batteur-serialize ${PROJECT_NAME}::${PROJECT_NAME})
+target_link_libraries (batteur-serialize ${PROJECT_NAME}::${PROJECT_NAME} fmt::fmt)
 
 if (NOT MSVC)
     install (TARGETS batteur-serialize
