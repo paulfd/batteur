@@ -256,7 +256,7 @@ void Player::tick(int sampleCount)
             << " | Pos/BlockEnd: " << position << "/" << blockEnd
             << " | current note (index/number/time/duration) : "
             << std::distance(queuedSequences.front()->begin(), noteIt) << "/"
-            << noteIt->number << "/" << noteIt->timestamp << "/" << noteIt->duration);
+            << +noteIt->number << "/" << noteIt->timestamp << "/" << noteIt->duration);
 #endif
 
         const int noteOnDelay = midiDelay(noteIt->timestamp);
