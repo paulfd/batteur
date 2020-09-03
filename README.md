@@ -6,14 +6,11 @@ It is meant to be used with a drum sound generator within a more global LV2 or J
 
 Yet to do:
 - C API documentation
-- Update tests and harden the thing
-- Add a way to have a monolithic file format that include both the beat description and midi data, either through tar, a non-compressed zip, or a raw JSON description of the midi events
-- Refine the handling of the LV2 time extension for synchronization with the host tempo and time grid
-- UI, although these are in other projects
+- Update tests and harden the thing a little bit.
 
-## Beat description
+## Beat descriptions
 
-The format is not really final as I'm still playing around with it.
+The format is not really final, expect it to maybe evolve until the first "real" release.
 This is how it should look for now:
 
 ```json
@@ -52,7 +49,32 @@ This is how it should look for now:
 }
 ```
 
+You can also use a description within the JSON file.
+Check out the included beats in the `beats` directory for this.
+There is a development tool that serialize a JSON with midi files to a *monolithic* JSON file in `tools/serialize`.
+
+## LV2 plugin behavior
+
+The LV2 plugin works as follows.
 A short press on the main switch triggers a fill, a longer press moves to the next part.
 The fill duration tries to be a bit smart: if you press at the end of the bar, it will do a longer fill over the next bar.
 It also tries to adapt to different fill durations, although this could be improved.
-Double pressing the main switch will trigger the ending.
+Double pressing the main switch will trigger the ending, which acts as a fill.
+
+## Compilation
+
+You need to have `cmake` installed, as well as a reasonable compiler.
+The cmake options are as follows:
+
+```
+BATTEUR_LV2     "Enable LV2 plug-in build [default: ON]"
+BATTEUR_TESTS   "Enable tests build [default: OFF]"
+BATTEUR_TOOLS   "Enable tools build [default: OFF]"
+BATTEUR_SHARED  "Enable the shared library build [default: ON]
+BATTEUR_STATIC  "Enable the static library build [default: ON]
+```
+
+Enabling the development tools requires the `fmt` library.
+
+
+
