@@ -7,6 +7,8 @@ namespace batteur {
 Player::Player()
 {
     queuedSequences.reserve(4);
+    deferredNotes.reserve(1024);
+    potentialNotesToMerge.reserve(128);
 }
 
 bool Player::loadBeatDescription(const BeatDescription& description)
@@ -253,15 +255,37 @@ void Player::tick(int sampleCount)
 #if 1
         DBG("Seq: " << queuedSequences.size()
             << " | Pos/BlockEnd: " << position << "/" << blockEnd
-            << " | current note (index/time/duration) : "
+            << " | current note (index/number/time/duration) : "
             << std::distance(queuedSequences.front()->begin(), noteIt) << "/"
-            << noteIt->timestamp << "/" << noteIt->duration);
+            << noteIt->number << "/" << noteIt->timestamp << "/" << noteIt->duration);
 #endif
 
         const int noteOnDelay = midiDelay(noteIt->timestamp);
         const int noteOffDelay = midiDelay(noteIt->timestamp + noteIt->duration);
-        deferredNotes.push_back({ noteOnDelay, noteIt->number, noteIt->velocity });
-        deferredNotes.push_back({ noteOffDelay, noteIt->number, 0 });
+        const auto potentialMergeIt = std::find_if(
+            potentialNotesToMerge.begin(),
+            potentialNotesToMerge.end(),
+            [&](const NoteEvents& evt) -> bool { return evt.number == noteIt->number; }
+        );
+
+        const auto deferNote = [&] {
+            deferredNotes.push_back({ noteOnDelay, noteIt->number, noteIt->velocity });
+            deferredNotes.push_back({ noteOffDelay, noteIt->number, 0 });
+        };
+        
+        if (potentialMergeIt == potentialNotesToMerge.end()) {
+            deferNote();
+            potentialNotesToMerge.push_back({ noteOnDelay, noteIt->number, noteIt->velocity });
+        } else {
+            if (noteOnDelay - potentialMergeIt->delay > mergingThreshold) {
+                deferNote();
+            } else {
+                DBG("Merging note with number " << noteIt->number);
+            }
+    
+            potentialMergeIt->delay = noteOnDelay;
+        }
+
         position = noteIt->timestamp;
         noteIt++;
     }
@@ -280,6 +304,16 @@ void Player::tick(int sampleCount)
 
     for (auto& evt : deferredNotes)
         evt.delay -= sampleCount;
+
+    auto potentialMergeIt = potentialNotesToMerge.begin();
+    while (potentialMergeIt != potentialNotesToMerge.end()) {
+        potentialMergeIt->delay -= sampleCount;
+        if (-potentialMergeIt->delay > mergingThreshold) {
+            potentialMergeIt = potentialNotesToMerge.erase(potentialMergeIt);
+        } else {
+            potentialMergeIt++;
+        }
+    }
 }
 
 bool Player::enteringFillInState() const
@@ -300,11 +334,13 @@ bool Player::leavingFillInState() const
 void Player::setSampleRate(double sampleRate)
 {
     this->sampleRate = sampleRate;
+    mergingThreshold = mergingQuarterFraction * sampleRate * secondsPerQuarter;
 }
 
 void Player::setTempo(double bpm)
 {
     this->secondsPerQuarter = 60.0 / bpm;
+    mergingThreshold = mergingQuarterFraction * sampleRate * secondsPerQuarter;
 }
 
 void Player::setNoteCallback(NoteCallback cb)

@@ -59,6 +59,10 @@ private:
     int fillIndex { 0 };
     int partIndex { 0 };
     std::mutex callbackGuard;
+
+    static constexpr double mergingQuarterFraction { 0.05 };
+    std::vector<NoteEvents> potentialNotesToMerge;
+    int mergingThreshold { 0.05 * secondsPerQuarter * sampleRate };
 };
 
 }
