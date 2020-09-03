@@ -19,6 +19,7 @@ bool Player::loadBeatDescription(const BeatDescription& description)
         return false;
 
     currentBeat = &description;
+    setTempo(description.bpm);
     reset();
     return true;
 }

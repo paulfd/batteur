@@ -128,6 +128,7 @@ typedef struct
     char beat_file_path[MAX_PATH_SIZE];
     int max_block_size;
     int accent_note;
+    bool bpm_set_by_host;
     float bpm;
     float speed;
     float beat;
@@ -262,6 +263,7 @@ instantiate(const LV2_Descriptor* descriptor,
     self->accent_pressed = false;
     self->last_main_up = 0;
     self->beat = 0.0f;
+    self->bpm_set_by_host = false;
     self->bpm = 120.0f;
     self->speed = 1.0f;
     self->main_switch_status = 0.0f;
@@ -570,13 +572,18 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
         // Tempo changed, update BPM
         self->bpm = ((LV2_Atom_Float*)bpm)->body;
         batteur_set_tempo(self->player, self->bpm);
+        self->bpm_set_by_host = true;
+        lv2_log_note(&self->logger, "BPM changed to: %.4f\n", self->bpm);
     }
+
     if (speed && speed->type == self->atom_float_uri) {
         // Speed changed, e.g. 0 (stop) to 1 (play)
         self->speed = ((LV2_Atom_Float*)speed)->body;
         if (self->speed == 0.0f)
             batteur_all_off(self->player);
+        lv2_log_note(&self->logger, "Speed changed to: %.4f\n", self->speed);
     }
+
     if (beat && beat->type == self->atom_float_uri) {
         self->beat = ((LV2_Atom_Float*)beat)->body;
         lv2_log_note(&self->logger, "Beat not handled: %.4f\n", self->beat);
@@ -796,6 +803,9 @@ work_response(LV2_Handle instance,
             if (batteur_load(self->player, self->nextBeat)) {
                 self->currentBeat = self->nextBeat;
                 self->nextBeat = beat; // will be cleaned up on the next load
+                if (self->bpm_set_by_host)
+                    batteur_set_tempo(self->player, self->bpm);
+
                 strcpy(self->beat_file_path, beat_file_path);
             }
         }
