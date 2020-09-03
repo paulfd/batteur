@@ -334,13 +334,13 @@ bool Player::leavingFillInState() const
 void Player::setSampleRate(double sampleRate)
 {
     this->sampleRate = sampleRate;
-    mergingThreshold = mergingQuarterFraction * sampleRate * secondsPerQuarter;
+    mergingThreshold = static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate);
 }
 
 void Player::setTempo(double bpm)
 {
     this->secondsPerQuarter = 60.0 / bpm;
-    mergingThreshold = mergingQuarterFraction * sampleRate * secondsPerQuarter;
+    mergingThreshold = static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate);
 }
 
 void Player::setNoteCallback(NoteCallback cb)

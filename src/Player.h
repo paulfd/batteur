@@ -62,7 +62,7 @@ private:
 
     static constexpr double mergingQuarterFraction { 0.05 };
     std::vector<NoteEvents> potentialNotesToMerge;
-    int mergingThreshold { 0.05 * secondsPerQuarter * sampleRate };
+    int mergingThreshold { static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate) };
 };
 
 }
