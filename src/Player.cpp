@@ -185,12 +185,10 @@ void Player::tick(int sampleCount)
         );
     
         if (noteIt == current->end()) {
-            if (leavingFillInState()) {
-                // Exiting the fill-in state
-                // DBG("Exiting fill-in state: removing the top sequence");
+            if (queuedSequences.size() == 2 && state != State::Ending) {
+                DBG("Exiting fill-in state: removing the top sequence");
                 eraseFrontSequence();
-                if (state != State::Ending)
-                    state = State::Playing;
+                state = State::Playing;
                 continue;
             }
 
@@ -206,18 +204,21 @@ void Player::tick(int sampleCount)
             blockStart -= sequenceDuration; // will be negative but it's OK!
             position = 0.0;
 
-            if (state == State::Ending) {
+            if (queuedSequences.size() == 1 && state == State::Ending) {
+                DBG("Ending finished; resetting");
                 queuedSequences.clear();
                 state = State::Stopped;
                 break;
             }
+
+            noteIt = current->begin();
         }        
 
-        if (enteringFillInState()) {
+        if (enteringFillInState() || enteringEndingState()) {
             const auto barStart = barStartedAt(position);
             const auto relPosition = position - barStart;
             const auto qpb = static_cast<double>(currentBeat->quartersPerBar);
-            const auto barThreshold = qpb - 1;
+            const auto barThreshold = qpb - 0.7;
             const auto relFillStart = queuedSequences[1]->front().timestamp;
             DBG("Could start fill in; relative position: " << relPosition
                 << ", fill start at " << relFillStart);
@@ -286,9 +287,14 @@ bool Player::enteringFillInState() const
     return queuedSequences.size() == 3;
 }
 
+bool Player::enteringEndingState() const
+{
+    return queuedSequences.size() == 2 && state == State::Ending;
+}
+
 bool Player::leavingFillInState() const
 {
-    return queuedSequences.size() == 2;
+    return queuedSequences.size() == 2 && state != State::Ending;
 }
 
 void Player::setSampleRate(double sampleRate)
