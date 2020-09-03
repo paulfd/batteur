@@ -22,8 +22,6 @@ TEST_CASE("[Files] Existing file")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/shuffle.json", ec);
-    if (ec)
-        std::cout << ec << std::endl;
     REQUIRE( beat );
     REQUIRE( beat->bpm == 78 );
     REQUIRE( beat->quartersPerBar == 4 );
