@@ -133,6 +133,24 @@ bool batteur_playing(batteur_player_t* player)
     return self->isPlaying();
 }
 
+double batteur_get_tempo(batteur_player_t* player)
+{
+    if (!player)
+        return 120.0;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return self->getTempo();
+}
+
+batteur_beat_t* batteur_get_current_beat(batteur_player_t* player)
+{
+    if (!player)
+        return NULL;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return (batteur_beat_t*)self->getBeatDescription();
+}
+
 #ifdef __cplusplus
 }
 #endif

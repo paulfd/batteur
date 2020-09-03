@@ -12,6 +12,8 @@ class Player {
 public:
     Player();
     bool loadBeatDescription(const BeatDescription& description);
+    const BeatDescription* getBeatDescription() { return currentBeat; }
+    double getTempo() { return 60.0 / secondsPerQuarter; }
     bool start();
     bool stop();
     bool fillIn();

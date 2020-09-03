@@ -30,6 +30,8 @@ BATTEUR_EXPORTED_API  bool batteur_load(batteur_player_t* player, batteur_beat_t
 BATTEUR_EXPORTED_API  void batteur_set_sample_rate(batteur_player_t* player, double sample_rate);
 BATTEUR_EXPORTED_API  void batteur_note_cb(batteur_player_t* player, batteur_note_cb_t callback, void* cbdata);
 BATTEUR_EXPORTED_API  void batteur_set_tempo(batteur_player_t* player, double bpm);
+BATTEUR_EXPORTED_API  double batteur_get_tempo(batteur_player_t* player);
+BATTEUR_EXPORTED_API  batteur_beat_t* batteur_get_current_beat(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_tick(batteur_player_t* player, int sample_count);
 BATTEUR_EXPORTED_API  void batteur_fill_in(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_next(batteur_player_t* player);
