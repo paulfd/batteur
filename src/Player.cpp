@@ -208,8 +208,7 @@ void Player::tick(int sampleCount)
 
             if (queuedSequences.size() == 1 && state == State::Ending) {
                 DBG("Ending finished; resetting");
-                queuedSequences.clear();
-                state = State::Stopped;
+                reset();
                 break;
             }
 
@@ -308,6 +307,7 @@ void Player::tick(int sampleCount)
     auto potentialMergeIt = potentialNotesToMerge.begin();
     while (potentialMergeIt != potentialNotesToMerge.end()) {
         potentialMergeIt->delay -= sampleCount;
+
         if (-potentialMergeIt->delay > mergingThreshold) {
             potentialMergeIt = potentialNotesToMerge.erase(potentialMergeIt);
         } else {
