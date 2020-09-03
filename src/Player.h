@@ -60,6 +60,9 @@ private:
     int partIndex { 0 };
     std::mutex callbackGuard;
 
+    int quarterToSamples(double quarterFraction) const noexcept;
+    double samplesToQuarter(int samples) const noexcept;
+
     static constexpr double mergingQuarterFraction { 0.05 };
     std::vector<NoteEvents> potentialNotesToMerge;
     int mergingThreshold { static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate) };

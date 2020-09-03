@@ -149,11 +149,9 @@ void Player::tick(int sampleCount)
 
     const auto currentQPB = currentBeat->quartersPerBar;
     auto blockStart = position;
-    double blockEnd = blockStart + sampleCount / sampleRate / secondsPerQuarter;
+    double blockEnd = blockStart + samplesToQuarter(sampleCount);
     const auto midiDelay = [&] (double timestamp) -> int {
-        return static_cast<int>(
-            (timestamp - blockStart) * secondsPerQuarter * sampleRate
-        );
+        return quarterToSamples(timestamp - blockStart);
     };
 
     auto current = queuedSequences.front(); // Otherwise we have ** everywhere..
@@ -334,13 +332,13 @@ bool Player::leavingFillInState() const
 void Player::setSampleRate(double sampleRate)
 {
     this->sampleRate = sampleRate;
-    mergingThreshold = static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate);
+    mergingThreshold = quarterToSamples(mergingQuarterFraction);
 }
 
 void Player::setTempo(double bpm)
 {
     this->secondsPerQuarter = 60.0 / bpm;
-    mergingThreshold = static_cast<int>(mergingQuarterFraction * secondsPerQuarter * sampleRate);
+    mergingThreshold = quarterToSamples(mergingQuarterFraction);
 }
 
 void Player::setNoteCallback(NoteCallback cb)
@@ -371,4 +369,15 @@ bool Player::isPlaying() const
 {
     return state != State::Stopped;
 }
+
+int Player::quarterToSamples(double quarterFraction) const noexcept
+{
+    return static_cast<int>(quarterFraction * secondsPerQuarter * sampleRate);
+}
+
+double Player::samplesToQuarter(int samples) const noexcept
+{
+    return static_cast<double>(samples) / sampleRate / secondsPerQuarter;
+}
+
 }
