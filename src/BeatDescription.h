@@ -19,10 +19,8 @@ struct Note {
 
 using Sequence = std::vector<Note>;
 
-double barCount(const Sequence& sequence, unsigned quartersPerBar);
-void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBar);
-unsigned quarterStart(const Sequence& sequence, unsigned quartersPerBar);
-unsigned quarterEnd(const Sequence& sequence, unsigned quartersPerBar);
+double barCount(const Sequence& sequence, double quartersPerBar);
+void alignSequenceEnd(Sequence& sequence, double numBars, double quartersPerBar);
 
 struct Part {
     std::string name;
@@ -31,11 +29,17 @@ struct Part {
     tl::optional<Sequence> transition;
 };
 
+struct TimeSignature {
+    int num;
+    int denom;
+};
+
 struct BeatDescription {
     std::string name;
     std::string group;
     float bpm;
-    unsigned quartersPerBar;
+    double quartersPerBar;
+    TimeSignature signature;
     tl::optional<Sequence> intro;
     std::vector<Part> parts;
     tl::optional<Sequence> ending;

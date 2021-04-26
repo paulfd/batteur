@@ -24,11 +24,41 @@ TEST_CASE("[Files] Existing file")
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/shuffle.json", ec);
     REQUIRE( beat );
     REQUIRE( beat->bpm == 78 );
-    REQUIRE( beat->quartersPerBar == 4 );
+    REQUIRE( beat->quartersPerBar == 4.0 );
     REQUIRE( beat->intro );
     REQUIRE( beat->parts.size() == 2 );
     REQUIRE( beat->parts[0].name == "Snare" );
     REQUIRE( beat->parts[1].name == "Ride" );
     REQUIRE( beat->parts[0].fills.size() == 2 );
     REQUIRE( beat->parts[1].fills.size() == 1 );
+}
+
+TEST_CASE("[Files] Time signature 1")
+{
+    std::error_code ec;
+    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig1.json", ec);
+    REQUIRE( beat );
+    REQUIRE( beat->quartersPerBar == 4.0 );
+    REQUIRE( beat->signature.num == 4 );
+    REQUIRE( beat->signature.denom == 4 );
+}
+
+TEST_CASE("[Files] Time signature 2")
+{
+    std::error_code ec;
+    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig2.json", ec);
+    REQUIRE( beat );
+    REQUIRE( beat->quartersPerBar == 6.0 );
+    REQUIRE( beat->signature.num == 12 );
+    REQUIRE( beat->signature.denom == 8 );
+}
+
+TEST_CASE("[Files] Time signature 3")
+{
+    std::error_code ec;
+    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig3.json", ec);
+    REQUIRE( beat );
+    REQUIRE( beat->quartersPerBar == 3.5 );
+    REQUIRE( beat->signature.num == 7 );
+    REQUIRE( beat->signature.denom == 8 );
 }

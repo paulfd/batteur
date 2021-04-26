@@ -159,9 +159,8 @@ void Player::tick(int sampleCount)
     auto noteIt = current->begin();
 
     const auto barStartedAt = [currentQPB] (double pos) -> double {
-        const auto qpb = static_cast<double>(currentQPB);
-        const auto barPosition = pos / qpb;
-        return std::floor(barPosition) * qpb;
+        const auto barPosition = pos / currentQPB;
+        return std::floor(barPosition) * currentQPB;
     };
 
     const auto movePosition = [&] (double offset) {
@@ -217,7 +216,7 @@ void Player::tick(int sampleCount)
         if (enteringFillInState() || enteringEndingState()) {
             const auto barStart = barStartedAt(position);
             const auto relPosition = position - barStart;
-            const auto qpb = static_cast<double>(currentBeat->quartersPerBar);
+            const auto qpb = currentBeat->quartersPerBar;
             const auto barThreshold = qpb - 0.7;
             const auto relFillStart = queuedSequences[1]->front().timestamp;
             DBG("Could start fill in; relative position: " << relPosition
@@ -239,7 +238,7 @@ void Player::tick(int sampleCount)
                 if (relFillStart > barThreshold) {
                     DBG("Fill-in has a short bar; skipping the first fill bar");
                     eraseFrontSequence();
-                    movePosition(static_cast<double>(currentBeat->quartersPerBar));
+                    movePosition(currentBeat->quartersPerBar);
                     continue;
                 }
             }
@@ -389,9 +388,15 @@ Player::State Player::getState() const noexcept
     return state;
 }
 
-double Player::getTimePosition() const noexcept
+double Player::getBarPosition() const noexcept
 {
-    return this->position;
+    const auto beat = currentBeat;
+    
+    if (!beat)
+        return {};   
+
+    return std::fmod(this->position * 4.0 / currentBeat->signature.denom, 
+        static_cast<double>(currentBeat->signature.num));
 }
 
 int Player::getPartIndex() const noexcept

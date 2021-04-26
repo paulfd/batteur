@@ -71,18 +71,16 @@ int batteur_get_time_numerator(batteur_beat_t* beat)
         return 0;
 
     auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
-    return static_cast<int>(self->quartersPerBar);
+    return self->signature.num;
 }
 
 int batteur_get_time_denominator(batteur_beat_t* beat)
 {
-    (void)beat;
-    // if (!beat)
-    //     return 0;
+    if (!beat)
+        return 0;
 
-    // auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
-    // TODO: update
-    return 4;
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return self->signature.denom;
 }
 
 
@@ -237,13 +235,13 @@ batteur_status_t batteur_get_status(batteur_player_t* player)
     return BATTEUR_STOPPED;
 }
 
-double batteur_get_time_position(batteur_player_t* player)
+double batteur_get_bar_position(batteur_player_t* player)
 {
     if (!player)
         return 0.0;
     
     auto self = reinterpret_cast<batteur::Player*>(player);
-    return self->getTimePosition();
+    return self->getBarPosition();
 }
 
 int batteur_get_part_index(batteur_player_t* player)

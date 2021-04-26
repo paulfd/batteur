@@ -48,7 +48,7 @@ std::error_code batteur::make_error_code(batteur::BeatDescriptionError e)
 
 namespace batteur{
   
-double barCount(const Sequence& sequence, unsigned quartersPerBar)
+double barCount(const Sequence& sequence, double quartersPerBar)
 {
     if (sequence.empty())
         return 0.0;
@@ -56,7 +56,7 @@ double barCount(const Sequence& sequence, unsigned quartersPerBar)
     return std::ceil(sequence.back().timestamp / quartersPerBar);
 }
 
-void alignSequenceEnd(Sequence& sequence, double numBars, unsigned quartersPerBar)
+void alignSequenceEnd(Sequence& sequence, double numBars, double quartersPerBar)
 {
     const double sequenceBars = barCount(sequence, quartersPerBar);
     DBG("Number of bars in the sequence to align" << sequenceBars
@@ -109,7 +109,22 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
 
     beat->bpm = checkBPM(json["bpm"]).value_or(120.0);
 
-    beat->quartersPerBar = checkQuartersPerBar(json["quarters_per_bar"]).value_or(4);
+    beat->quartersPerBar = 4;
+    beat->signature = { 4, 4 };
+    auto qpb = json["quarters_per_bar"];
+    auto sig = json["signature"];
+    if (!qpb.is_null()) {
+        beat->quartersPerBar = checkQuartersPerBar(qpb).value_or(beat->quartersPerBar);
+        beat->signature.num = static_cast<int>(beat->quartersPerBar);
+    } else if (sig.is_array() && sig.size() == 2) {
+        if (sig[0].is_number_unsigned())
+            beat->signature.num = sig[0].get<int>();
+
+        if (sig[1].is_number_unsigned())
+            beat->signature.denom = sig[1].get<int>();
+
+        beat->quartersPerBar = beat->signature.num * 4.0 / beat->signature.denom;
+    }
 
     const auto rootDirectory = file.parent_path();
 

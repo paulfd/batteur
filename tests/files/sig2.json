@@ -1,0 +1,26 @@
+{
+    "name": "Slow shuffle",
+    "group": "Blues",
+    "bpm" : 78,
+    "signature": [12, 8],
+    "intro": { "filename" : "midi/shuffle_intro.mid" },
+    "parts": [
+        {
+            "name": "Snare",
+            "sequence" : { "filename" : "midi/shuffle_part.mid" },
+            "fills": [
+                { "filename" : "midi/snare_fill.mid" },
+                { "filename" : "midi/snare_fill.mid" }
+            ],
+            "transition": { "filename" : "midi/snare_fill.mid" }
+        },
+        {
+            "name": "Ride",
+            "sequence" : { "filename" : "midi/shuffle_part_ride.mid" },
+            "fills": [
+                { "filename" : "midi/snare_fill.mid" }
+            ],
+            "transition": { "filename" : "midi/snare_fill.mid" }
+        }
+    ]
+}
