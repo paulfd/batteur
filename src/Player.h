@@ -25,6 +25,11 @@ public:
     void setTempo(double bpm);
     void setNoteCallback(NoteCallback cb);
     const char* getCurrentPartName();
+    enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
+    State getState() const noexcept;
+    double getTimePosition() const noexcept;
+    int getPartIndex() const noexcept;
+    int getFillIndex() const noexcept;
 
 private:
     struct NoteEvents {
@@ -41,7 +46,6 @@ private:
 
     void reset();
 
-    enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
     enum class Message { Start = 1, Stop, Fill, Next };
     State state { State::Stopped };
     template<class T, unsigned N>

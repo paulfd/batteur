@@ -50,8 +50,8 @@
 #define DEFAULT_SFZ_FILE ""
 #define batteur_URI "https://github.com/paulfd/batteur"
 #define batteur__beatDescription "https://github.com/paulfd/batteur:beatDescription"
-#define batteur__mainSwitch "https://github.com/paulfd/batteur:mainSwitch"
-#define batteur__status "https://github.com/paulfd/batteur:status"
+#define batteur__beatName "https://github.com/paulfd/batteur:beatName"
+#define batteur__partName "https://github.com/paulfd/batteur:partName"
 #define MAIN_SWITCH_ON "Switch on!"
 #define MAIN_SWITCH_OFF "Switch off!"
 #define CHANNEL_MASK 0x0F
@@ -81,6 +81,14 @@ typedef struct
     const float* main_p;
     const float* accent_p;
     const float* accent_note_p;
+    float* time_num_p;
+    float* time_denom_p;
+    float* beat_p;
+    float* status_p;
+    float* part_index_p;
+    float* part_total_p;
+    float* fill_index_p;
+    float* fill_total_p;
 
     // Atom forge
     LV2_Atom_Forge forge; ///< Forge for writing atoms in run thread
@@ -112,10 +120,9 @@ typedef struct
     LV2_URID time_bar_beat_uri;
     LV2_URID time_bpm_uri;
     LV2_URID time_speed_uri;
-    LV2_URID state_changed_uri;
     LV2_URID beat_description_uri;
-    LV2_URID main_switch_uri;
-    LV2_URID status_uri;
+    LV2_URID beat_name_uri;
+    LV2_URID part_name_uri;
 
     // Sfizz related data
     // sfizz_synth_t *synth;
@@ -143,6 +150,14 @@ enum {
     MAIN_PORT,
     ACCENT_PORT,
     ACCENT_NOTE_PORT,
+    TIME_NUM_PORT,
+    TIME_DENOM_PORT,
+    BEAT_PORT,
+    STATUS_PORT,
+    PART_INDEX_PORT,
+    PART_TOTAL_PORT,
+    FILL_INDEX_PORT,
+    FILL_TOTAL_PORT,
 };
 
 static void
@@ -166,14 +181,13 @@ batteur_map_required_uris(batteur_plugin_t* self)
     self->patch_body_uri = map->map(map->handle, LV2_PATCH__body);
     self->patch_property_uri = map->map(map->handle, LV2_PATCH__property);
     self->patch_value_uri = map->map(map->handle, LV2_PATCH__value);
-    self->state_changed_uri = map->map(map->handle, LV2_STATE__StateChanged);
     self->time_position_uri = map->map(map->handle, LV2_TIME__Position);
     self->time_bar_beat_uri = map->map(map->handle, LV2_TIME__barBeat);
     self->time_bpm_uri = map->map(map->handle, LV2_TIME__beatsPerMinute);
     self->time_speed_uri = map->map(map->handle, LV2_TIME__speed);
     self->beat_description_uri = map->map(map->handle, batteur__beatDescription);
-    self->main_switch_uri = map->map(map->handle, batteur__mainSwitch);
-    self->status_uri = map->map(map->handle, batteur__status);
+    self->beat_name_uri = map->map(map->handle, batteur__beatName);
+    self->part_name_uri = map->map(map->handle, batteur__partName);
 }
 
 static void
@@ -198,6 +212,30 @@ connect_port(LV2_Handle instance,
         break;
     case ACCENT_NOTE_PORT:
         self->accent_note_p = (const float*)data;
+        break;
+    case TIME_NUM_PORT:
+        self->time_num_p = (float*)data;
+        break;
+    case TIME_DENOM_PORT:
+        self->time_denom_p = (float*)data;
+        break;
+    case BEAT_PORT:
+        self->beat_p = (float*)data;
+        break;
+    case STATUS_PORT:
+        self->status_p = (float*)data;
+        break;
+    case PART_INDEX_PORT:
+        self->part_index_p = (float*)data;
+        break;
+    case PART_TOTAL_PORT:
+        self->part_total_p = (float*)data;
+        break;
+    case FILL_INDEX_PORT:
+        self->fill_index_p = (float*)data;
+        break;
+    case FILL_TOTAL_PORT:
+        self->fill_total_p = (float*)data;
         break;
     default:
         break;
@@ -386,28 +424,6 @@ deactivate(LV2_Handle instance)
     UNUSED(instance);
 }
 
-static void
-batteur_process_midi_event(batteur_plugin_t* self, const LV2_Atom_Event* ev)
-{
-    const uint8_t* const msg = (const uint8_t*)(ev + 1);
-    switch (lv2_midi_message_type(msg)) {
-    case LV2_MIDI_MSG_NOTE_ON:
-        lv2_log_note(&self->logger,
-            "[process_midi] Received note on %d/%d at time %ld\n", msg[0], msg[1], ev->time.frames);
-        break;
-    case LV2_MIDI_MSG_NOTE_OFF:
-        lv2_log_note(&self->logger,
-            "[process_midi] Received note off %d/%d at time %ld\n", msg[0], msg[1], ev->time.frames);
-        break;
-    case LV2_MIDI_MSG_CONTROLLER:
-        lv2_log_note(&self->logger,
-            "[process_midi] Received CC %d/%d at time %ld\n", msg[0], msg[1], ev->time.frames);
-        break;
-    default:
-        break;
-    }
-}
-
 static void 
 send_file_path(batteur_plugin_t* self)
 {
@@ -422,18 +438,40 @@ send_file_path(batteur_plugin_t* self)
 }
 
 static void 
-send_status(batteur_plugin_t* self)
+send_beat_name(batteur_plugin_t* self)
 {
     LV2_Atom_Forge_Frame frame;
     lv2_atom_forge_frame_time(&self->forge, 0);
     lv2_atom_forge_object(&self->forge, &frame, 0, self->patch_set_uri);
     lv2_atom_forge_key(&self->forge, self->patch_property_uri);
-    lv2_atom_forge_urid(&self->forge, self->status_uri);
+    lv2_atom_forge_urid(&self->forge, self->beat_name_uri);
     lv2_atom_forge_key(&self->forge, self->patch_value_uri);
-    if (self->main_switch_status)
-        lv2_atom_forge_string(&self->forge, MAIN_SWITCH_ON, strlen(MAIN_SWITCH_ON));
+
+    const char* name = batteur_get_beat_name(self->currentBeat);
+    if (name)
+        lv2_atom_forge_string(&self->forge, name, strlen(name));
     else
-        lv2_atom_forge_string(&self->forge, MAIN_SWITCH_OFF, strlen(MAIN_SWITCH_OFF));
+        lv2_atom_forge_string(&self->forge, "", 0);
+
+    lv2_atom_forge_pop(&self->forge, &frame);
+}
+
+static void 
+send_part_name(batteur_plugin_t* self)
+{
+    LV2_Atom_Forge_Frame frame;
+    lv2_atom_forge_frame_time(&self->forge, 0);
+    lv2_atom_forge_object(&self->forge, &frame, 0, self->patch_set_uri);
+    lv2_atom_forge_key(&self->forge, self->patch_property_uri);
+    lv2_atom_forge_urid(&self->forge, self->part_name_uri);
+    lv2_atom_forge_key(&self->forge, self->patch_value_uri);
+
+    int part_index = batteur_get_part_index(self->player);
+    const char* name = batteur_get_part_name(self->currentBeat, part_index);
+    if (name)
+        lv2_atom_forge_string(&self->forge, name, strlen(name));
+    else
+        lv2_atom_forge_string(&self->forge, "", 0);
 
     lv2_atom_forge_pop(&self->forge, &frame);
 }
@@ -450,23 +488,23 @@ main_switch_event(batteur_plugin_t* self, float switch_status)
         const double since_last_down = 
             (double)(self->last_main_down) / self->sample_rate;
 
-        lv2_log_note(&self->logger, 
-                    "[run] Main switch down (%.3f s since switch pressed)\n",
-                    since_switch_pressed);
+        // lv2_log_note(&self->logger, 
+        //             "[run] Main switch down (%.3f s since switch pressed)\n",
+        //             since_switch_pressed);
         
         if (batteur_playing(self->player)) {
             if (since_last_down < SWITCH_DURATION) {
-                lv2_log_note(&self->logger, "[run] Stop\n");
+                // lv2_log_note(&self->logger, "[run] Stop\n");
                 batteur_stop(self->player);
             } else if (since_switch_pressed < SWITCH_DURATION) {
-                lv2_log_note(&self->logger, "[run] Fill in\n");
+                // lv2_log_note(&self->logger, "[run] Fill in\n");
                 batteur_fill_in(self->player);
             } else {
-                lv2_log_note(&self->logger, "[run] Next\n");
+                // lv2_log_note(&self->logger, "[run] Next\n");
                 batteur_next(self->player);
             }
         } else {
-            lv2_log_note(&self->logger, "[run] Play\n");
+            // lv2_log_note(&self->logger, "[run] Play\n");
             batteur_start(self->player);
         }
         
@@ -490,10 +528,6 @@ beat_description_event(batteur_plugin_t* self, const LV2_Atom* atom)
         self->worker->schedule_work(self->worker->handle, 
                                     null_terminated_atom_size,
                                     file_path);
-
-    lv2_log_note(&self->logger,
-                "[handle_object] Received a description file: %s\n",
-                (char*)LV2_ATOM_BODY_CONST(file_path));
 }
 
 static void
@@ -544,15 +578,15 @@ handle_patch_get(batteur_plugin_t* self, const LV2_Atom_Object* obj, int64_t fra
     lv2_atom_object_get(obj, self->patch_property_uri, &property, 0);
     if (!property) // Send the full state
     {
-        lv2_log_warning(&self->logger, "Got an Patch GET with no body.\n");
         send_file_path(self);
-        send_status(self);
+        send_beat_name(self);
+        send_part_name(self);
     } else if (property->body == self->beat_description_uri) {
-        lv2_log_warning(&self->logger, "Got an Patch GET for the beat description.\n");
         send_file_path(self);
-    } else if (property->body == self->status_uri) {
-        lv2_log_warning(&self->logger, "Got an Patch GET for the status.\n");
-        send_status(self);
+    } else if (property->body == self->beat_name_uri) {
+        send_beat_name(self);
+    } else if (property->body == self->part_name_uri) {
+        send_part_name(self);
     }
 }
 
@@ -573,7 +607,7 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
         self->bpm = ((LV2_Atom_Float*)bpm)->body;
         batteur_set_tempo(self->player, self->bpm);
         self->bpm_set_by_host = true;
-        lv2_log_note(&self->logger, "BPM changed to: %.4f\n", self->bpm);
+        // lv2_log_note(&self->logger, "BPM changed to: %.4f\n", self->bpm);
     }
 
     if (speed && speed->type == self->atom_float_uri) {
@@ -581,12 +615,12 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
         self->speed = ((LV2_Atom_Float*)speed)->body;
         if (self->speed == 0.0f)
             batteur_all_off(self->player);
-        lv2_log_note(&self->logger, "Speed changed to: %.4f\n", self->speed);
+        // lv2_log_note(&self->logger, "Speed changed to: %.4f\n", self->speed);
     }
 
     if (beat && beat->type == self->atom_float_uri) {
         self->beat = ((LV2_Atom_Float*)beat)->body;
-        lv2_log_note(&self->logger, "Beat not handled: %.4f\n", self->beat);
+        // lv2_log_note(&self->logger, "Beat not handled: %.4f\n", self->beat);
     }
 }
 
@@ -625,19 +659,18 @@ run(LV2_Handle instance, uint32_t sample_count)
             }
             // Got an atom that is a MIDI event
         } else if (ev->body.type == self->midi_event_uri) {
-            batteur_process_midi_event(self, ev);
+            // Nothing to do here
         }
     }
 
     if (*self->main_p != self->main_switch_status) {
         main_switch_event(self, *self->main_p);
         self->main_switch_status = *self->main_p;
-        send_status(self);
+        send_beat_name(self);
     }
 
     if (*self->accent_p) {
         if (!self->accent_pressed) {
-            lv2_log_warning(&self->logger, "Accent!\n");
             batteur_callback(0, (uint8_t)*self->accent_note_p, DEFAULT_ACCENT_VELOCITY, self);
             self->accent_pressed = true;
         }
@@ -648,6 +681,15 @@ run(LV2_Handle instance, uint32_t sample_count)
     self->last_main_up += sample_count;
     self->last_main_down += sample_count;
     batteur_tick(self->player, sample_count);
+
+    *self->part_index_p = batteur_get_part_index(self->player) + 1;
+    *self->part_total_p = batteur_get_total_parts(self->currentBeat);
+    *self->fill_index_p = batteur_get_fill_index(self->player) + 1;
+    *self->fill_total_p = batteur_get_total_fills(self->currentBeat, *self->part_index_p - 1);
+    *self->time_num_p = batteur_get_time_numerator(self->currentBeat);
+    *self->time_denom_p = batteur_get_time_denominator(self->currentBeat);
+    *self->beat_p = batteur_get_time_position(self->player);
+    *self->status_p = batteur_get_status(self->player);
 }
 
 static uint32_t
@@ -765,7 +807,6 @@ work(LV2_Handle instance,
     const LV2_Atom* atom = (const LV2_Atom*)data;
     if (atom->type == self->beat_description_uri) {
         const char* file_path = LV2_ATOM_BODY_CONST(atom);
-        // lv2_log_note(&self->logger, "[work] Loading file: %s\n", file_path);
         batteur_beat_t* beat = batteur_load_beat(file_path);
         if (beat) {
             self->nextBeat = beat;
@@ -809,7 +850,6 @@ work_response(LV2_Handle instance,
                 strcpy(self->beat_file_path, beat_file_path);
             }
         }
-        // lv2_log_note(&self->logger, "[work_response] File changed to: %s\n", self->beat_file_path);
     } else {
         lv2_log_error(&self->logger, "[work_response] Got an unknown atom.\n");
         if (self->unmap)

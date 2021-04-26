@@ -21,6 +21,72 @@ void batteur_free_beat(batteur_beat_t* beat)
     delete reinterpret_cast<batteur::BeatDescription*>(beat);
 }
 
+const char* batteur_get_beat_name(batteur_beat_t* beat)
+{
+    if (!beat)
+        return {};
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return self->name.c_str();
+}
+
+const char* batteur_get_part_name(batteur_beat_t* beat, int part_index)
+{
+    if (!beat)
+        return {};
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    const auto numParts = static_cast<int>(self->parts.size());
+    if (part_index < 0 || part_index >= numParts)
+        return {};
+
+    return self->parts[part_index].name.c_str();
+}
+
+int batteur_get_total_parts(batteur_beat_t* beat)
+{
+    if (!beat)
+        return 0;
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return static_cast<int>(self->parts.size());
+}
+
+int batteur_get_total_fills(batteur_beat_t* beat, int part_index)
+{
+    if (!beat)
+        return 0;
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    const auto numParts = static_cast<int>(self->parts.size());
+    if (part_index < 0 || part_index >= numParts)
+        return 0;
+
+    return static_cast<int>(self->parts[part_index].fills.size());
+}
+
+int batteur_get_time_numerator(batteur_beat_t* beat)
+{
+    if (!beat)
+        return 0;
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return static_cast<int>(self->quartersPerBar);
+}
+
+int batteur_get_time_denominator(batteur_beat_t* beat)
+{
+    (void)beat;
+    // if (!beat)
+    //     return 0;
+
+    // auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    // TODO: update
+    return 4;
+}
+
+
+
 batteur_player_t* batteur_new()
 {
     return reinterpret_cast<batteur_player_t*>(new batteur::Player);
@@ -149,6 +215,53 @@ batteur_beat_t* batteur_get_current_beat(batteur_player_t* player)
     
     auto self = reinterpret_cast<batteur::Player*>(player);
     return (batteur_beat_t*)self->getBeatDescription();
+}
+
+batteur_status_t batteur_get_status(batteur_player_t* player)
+{
+    using namespace batteur;
+
+    if (!player)
+        return BATTEUR_STOPPED;
+    
+    auto self = reinterpret_cast<Player*>(player);
+    switch (self->getState()) {
+    case Player::State::Stopped: return BATTEUR_STOPPED;
+    case Player::State::Playing: return BATTEUR_PLAYING;
+    case Player::State::Fill: return BATTEUR_FILL_IN;
+    case Player::State::Next: return BATTEUR_NEXT;
+    case Player::State::Intro: return BATTEUR_INTRO;
+    case Player::State::Ending: return BATTEUR_ENDING;
+    }
+
+    return BATTEUR_STOPPED;
+}
+
+double batteur_get_time_position(batteur_player_t* player)
+{
+    if (!player)
+        return 0.0;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return self->getTimePosition();
+}
+
+int batteur_get_part_index(batteur_player_t* player)
+{
+    if (!player)
+        return 0;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return self->getPartIndex();
+}
+
+int batteur_get_fill_index(batteur_player_t* player)
+{
+    if (!player)
+        return 0;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    return self->getFillIndex();
 }
 
 #ifdef __cplusplus

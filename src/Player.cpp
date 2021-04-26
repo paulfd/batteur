@@ -349,7 +349,10 @@ void Player::setNoteCallback(NoteCallback cb)
 
 const char* Player::getCurrentPartName()
 {
-    return {};
+    if (!currentBeat)
+        return {};
+
+    return currentBeat->parts[partIndex].name.c_str();
 }
 
 void Player::allOff()
@@ -380,5 +383,26 @@ double Player::samplesToQuarter(int samples) const noexcept
 {
     return static_cast<double>(samples) / sampleRate / secondsPerQuarter;
 }
+
+Player::State Player::getState() const noexcept
+{
+    return state;
+}
+
+double Player::getTimePosition() const noexcept
+{
+    return this->position;
+}
+
+int Player::getPartIndex() const noexcept
+{
+    return partIndex;
+}
+
+int Player::getFillIndex() const noexcept
+{
+    return fillIndex;
+}
+
 
 }
