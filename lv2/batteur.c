@@ -667,6 +667,7 @@ run(LV2_Handle instance, uint32_t sample_count)
         main_switch_event(self, *self->main_p);
         self->main_switch_status = *self->main_p;
         send_beat_name(self);
+        send_part_name(self);
     }
 
     if (*self->accent_p) {
