@@ -1,0 +1,81 @@
+.batteur{{{cns}}} {
+    background-image: url(/resources/background.png{{{ns}}});
+    position: absolute;
+    width: 333px;
+    height: 439px;
+    font-family: "Arial", sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.batteur{{{cns}}} .mod-light {
+    background-image:url(/resources/yellow-led.png{{{ns}}}) !important;
+    background-repeat:no-repeat;
+    overflow: hidden;
+    height:32px;
+    width:32px;
+    top: 20px;
+    right: 20px;
+    margin-top: 15px;
+    position: absolute;
+}
+
+.batteur{{{cns}}} .mod-light.on {
+    background-position:left center;
+}
+
+.batteur{{{cns}}} .mod-light.off {
+    background-position:right center;
+}
+
+.batteur{{{cns}}} .mod-footswitch {
+    background-image:url(/resources/switch-key.png{{{ns}}});
+    background-position:bottom center;
+    background-repeat:no-repeat;
+    background-size:auto 132px;
+    top: 15px;
+    left: 10px;
+    cursor:pointer;
+    height:66px;
+    width: 66px;
+    margin: auto;
+    position:absolute !important;
+}
+
+.batteur{{{cns}}} .mod-footswitch.on {
+    background-position-y: top !important
+}
+
+.batteur{{{cns}}} .batteur-switch {
+    background: url(/resources/footswitch.png{{{ns}}});
+    background-position:bottom center;
+    height: 88px;
+    width: 88px;
+    position: absolute ;
+    z-index: 40;
+    cursor: pointer;
+}
+
+.batteur{{{cns}}} .batteur-switch.off {
+    background-position:top center;
+}
+
+.batteur{{{cns}}} .batteur-switch.main {
+    bottom: 35px;
+    left: 55px;
+}
+
+.batteur{{{cns}}} .batteur-switch.accent {
+    bottom: 35px;
+    right: 30px;
+}
+
+.batteur{{{cns}}} .batteur-help {
+    font-style: italic;
+    position: absolute;
+    font-size: 14px;
+    text-align: center;
+    width: 150px;
+    left: 30px;
+    bottom: 125px;
+}

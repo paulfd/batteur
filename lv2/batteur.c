@@ -52,8 +52,6 @@
 #define batteur__beatDescription "https://github.com/paulfd/batteur:beatDescription"
 #define batteur__beatName "https://github.com/paulfd/batteur:beatName"
 #define batteur__partName "https://github.com/paulfd/batteur:partName"
-#define MAIN_SWITCH_ON "Switch on!"
-#define MAIN_SWITCH_OFF "Switch off!"
 #define CHANNEL_MASK 0x0F
 #define NOTE_ON 0x90
 #define NOTE_OFF 0x80
@@ -136,6 +134,7 @@ typedef struct
     int max_block_size;
     int accent_note;
     bool bpm_set_by_host;
+    bool transport_played;
     float bpm;
     float speed;
     float beat;
@@ -302,6 +301,7 @@ instantiate(const LV2_Descriptor* descriptor,
     self->last_main_up = 0;
     self->beat = 0.0f;
     self->bpm_set_by_host = false;
+    self->transport_played = false;
     self->bpm = 120.0f;
     self->speed = 1.0f;
     self->main_switch_status = 0.0f;
@@ -613,8 +613,14 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
     if (speed && speed->type == self->atom_float_uri) {
         // Speed changed, e.g. 0 (stop) to 1 (play)
         self->speed = ((LV2_Atom_Float*)speed)->body;
-        if (self->speed == 0.0f)
-            batteur_all_off(self->player);
+        if (self->speed == 0.0f) {
+            if (self->transport_played) {
+                batteur_all_off(self->player);
+                self->transport_played = false;
+            }
+        } else {
+            self->transport_played = true;
+        }
         // lv2_log_note(&self->logger, "Speed changed to: %.4f\n", self->speed);
     }
 
@@ -669,7 +675,7 @@ run(LV2_Handle instance, uint32_t sample_count)
         send_beat_name(self);
     }
 
-    if (*self->accent_p) {
+    if (*self->accent_p) { // TODO: make this simpler with lv2:trigger?
         if (!self->accent_pressed) {
             batteur_callback(0, (uint8_t)*self->accent_note_p, DEFAULT_ACCENT_VELOCITY, self);
             self->accent_pressed = true;

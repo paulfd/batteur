@@ -1,0 +1,35 @@
+
+@prefix modgui: <http://moddevices.com/ns/modgui#> .
+@prefix lv2:    <http://lv2plug.in/ns/lv2core#> .
+
+<@LV2PLUGIN_URI@>
+    modgui:gui [
+        modgui:resourcesDirectory <modgui> ;
+        modgui:iconTemplate <modgui/icon-batteur.html> ;
+        modgui:stylesheet <modgui/stylesheet-batteur.css> ;
+        modgui:screenshot <modgui/screenshot-batteur.png> ;
+        modgui:thumbnail <modgui/thumbnail-batteur.png> ;
+        modgui:javascript <modgui/script-batteur.js> ;
+        modgui:monitoredOutputs 
+            [ lv2:symbol "timenum" ] ,
+            [ lv2:symbol "timedenom" ] ,
+            [ lv2:symbol "beat" ] ,
+            [ lv2:symbol "status" ] ,
+            [ lv2:symbol "partindex" ] ,
+            [ lv2:symbol "parttotal" ] ,
+            [ lv2:symbol "fillindex" ] ,
+            [ lv2:symbol "filltotal" ] ;
+        modgui:port [
+            lv2:index 0;
+            lv2:symbol "main";
+            lv2:name "Main switch";
+        ] , [
+            lv2:index 1;
+            lv2:symbol "accent";
+            lv2:name "Accent switch";
+        ] , [
+            lv2:index 2;
+            lv2:symbol "accentnote";
+            lv2:name "Accent switch";
+        ] ;  
+    ] .
