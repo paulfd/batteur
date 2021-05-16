@@ -6,7 +6,7 @@ set (PROJECT_DESCRIPTION "A library to play backing drum parts live.")
 set (CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include (BatteurConfig)
 
-option (BATTEUR_LV2               "Enable LV2 plug-in build [default: ON]" OFF)
+option (BATTEUR_LV2               "Enable LV2 plug-in build [default: OFF]" OFF)
 option (BATTEUR_TESTS             "Enable tests build [default: OFF]" OFF)
 option (BATTEUR_TOOLS             "Enable tools build [default: OFF]" OFF)
 option (BATTEUR_SHARED            "Enable shared library build [default: ON]" ON)

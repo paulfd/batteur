@@ -48,28 +48,21 @@ TEST_CASE("[Files] QuartersPerBar Nan 1")
 {
     const auto j = "\"wat\""_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
-    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotAnUnsigned );
+    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotANumber );
 }
 
 TEST_CASE("[Files] QuartersPerBar Nan 2")
 {
     const auto j = "\"5.4\""_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
-    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotAnUnsigned );
-}
-
-TEST_CASE("[Files] QuartersPerBar Nan 3")
-{
-    const auto j = "5.4"_json;
-    REQUIRE( !checkQuartersPerBar(j).has_value() );
-    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotAnUnsigned );
+    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotANumber );
 }
 
 TEST_CASE("[Files] QuartersPerBar Nan 4")
 {
     const auto j = "-5"_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
-    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotAnUnsigned );
+    REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::Negative );
 }
 
 

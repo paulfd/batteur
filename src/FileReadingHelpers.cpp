@@ -3,12 +3,12 @@
 #include "MidiHelpers.h"
 #include <algorithm>
 
-tl::optional<unsigned> getQuarterPerBars(const fmidi_event_t& evt)
+tl::optional<double> getQuarterPerBars(const fmidi_event_t& evt)
 {
     if (evt.data[0] != 0x58)
         return {};
 
-    return evt.data[1] / (1 << (evt.data[2] - 2));
+    return static_cast<double>(evt.data[1]) / static_cast<double>(1 << (evt.data[2] - 2));
 }
 
 tl::optional<double> getSecondsPerQuarter(const fmidi_event_t& evt)
@@ -219,18 +219,20 @@ tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm)
     return b;
 }
 
-tl::expected<unsigned, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb)
+tl::expected<double, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb)
 {
     if (qpb.is_null())
         return tl::make_unexpected(QuartersPerBarError::NotPresent);
 
-    if (!qpb.is_number_unsigned())
-        return tl::make_unexpected(QuartersPerBarError::NotAnUnsigned);
+    if (!qpb.is_number())
+        return tl::make_unexpected(QuartersPerBarError::NotANumber);
 
-    const auto q = qpb.get<unsigned>();
+    const auto q = qpb.get<double>();
 
     if (q == 0)
         return tl::make_unexpected(QuartersPerBarError::Zero);
+    else if (q < 0)
+        return tl::make_unexpected(QuartersPerBarError::Negative);
 
     return q;
 }

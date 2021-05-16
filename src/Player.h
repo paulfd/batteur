@@ -27,7 +27,7 @@ public:
     const char* getCurrentPartName();
     enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
     State getState() const noexcept;
-    double getTimePosition() const noexcept;
+    double getBarPosition() const noexcept;
     int getPartIndex() const noexcept;
     int getFillIndex() const noexcept;
 

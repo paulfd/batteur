@@ -673,6 +673,7 @@ run(LV2_Handle instance, uint32_t sample_count)
         main_switch_event(self, *self->main_p);
         self->main_switch_status = *self->main_p;
         send_beat_name(self);
+        send_part_name(self);
     }
 
     if (*self->accent_p) { // TODO: make this simpler with lv2:trigger?
@@ -694,7 +695,7 @@ run(LV2_Handle instance, uint32_t sample_count)
     *self->fill_total_p = batteur_get_total_fills(self->currentBeat, *self->part_index_p - 1);
     *self->time_num_p = batteur_get_time_numerator(self->currentBeat);
     *self->time_denom_p = batteur_get_time_denominator(self->currentBeat);
-    *self->beat_p = batteur_get_time_position(self->player);
+    *self->beat_p = batteur_get_bar_position(self->player);
     *self->status_p = batteur_get_status(self->player);
 }
 
