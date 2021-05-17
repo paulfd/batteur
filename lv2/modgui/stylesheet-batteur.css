@@ -114,7 +114,7 @@
     font-weight: bold;
     font-size: 24px;
     width: 300px;
-    top: 110px;
+    top: 100px;
     left: 16px;
     text-align: center;
 }
@@ -123,7 +123,7 @@
     position: absolute;
     font-weight: normal;
     font-size: 20px;
-    top: 150px;
+    top: 140px;
     left: 30px;
 }
 
@@ -131,7 +131,7 @@
     position: absolute;
     font-weight: normal;
     font-size: 20px;
-    top: 150px;
+    top: 140px;
     left: 150px;
 }
 
@@ -139,12 +139,12 @@
     position: absolute;
     font-weight: normal;
     font-size: 20px;
-    top: 150px;
+    top: 140px;
     left: 270px;
 }
 
 .batteur{{{cns}}} .batteur-pos-canvas {
     position: absolute;
-    top: 190px;
+    top: 180px;
     left: 16px;
 }

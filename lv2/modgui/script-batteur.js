@@ -53,6 +53,23 @@ function (event) {
 					event.icon.find('[mod-role=batteur-signature-num]').text('-');
 				else
 					event.icon.find('[mod-role=batteur-signature-num]').text(event.value);
+
+				var canvas = document.getElementById("batteur-pos-canvas");
+				if (canvas.getContext) {
+					var context = canvas.getContext("2d");
+					let beatWidth = (canvas.width - 2) / event.value;
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					for (var i = 0; i <= event.value; i++) {
+						context.beginPath();
+						context.moveTo(beatWidth * i + 1, 0);
+						context.lineTo(beatWidth * i + 1, 8);
+						context.stroke();
+						context.beginPath();
+						context.moveTo(beatWidth * i + 1, 32);
+						context.lineTo(beatWidth * i + 1, 40);
+						context.stroke();
+					}
+				}
 				break;
 			case 'timedenom':
 				if (event.value == 0)
@@ -61,14 +78,21 @@ function (event) {
 					event.icon.find('[mod-role=batteur-signature-denom]').text(event.value);
 				break;
 			case 'barpos':
-				var canvas = event.icon.find('[mod-role=batteur-pos-canvas]');
+				var canvas = document.getElementById("batteur-pos-canvas");
+				var text = event.icon.find('[mod-role=batteur-signature-num]').text();
+				if (text == '-')
+					break;
+				
+				var timenum = parseInt(text);
+				if (timenum <= 0)
+					break;
+
 				if (canvas.getContext) {
-					var context = canvas.getContext('2d');
-					let width = event.value * 50;
-					console.warn(width);
-					context.fillRect(0, 0, width, 20);
-				} else {
-					console.warn('Cant find canvas');
+					var context = canvas.getContext("2d");
+					let beatWidth = canvas.width / timenum;
+					let width = event.value * beatWidth;
+					context.clearRect(0, 10, canvas.width, 20);
+					context.fillRect(0, 10, width, 20);
 				}
 				break;
 			default:
