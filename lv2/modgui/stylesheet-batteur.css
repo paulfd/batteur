@@ -108,3 +108,43 @@
     top: -25px;
     left: -10px;
 }
+
+.batteur{{{cns}}} .batteur-status {
+    position: absolute;
+    font-weight: bold;
+    font-size: 24px;
+    width: 300px;
+    top: 110px;
+    left: 16px;
+    text-align: center;
+}
+
+.batteur{{{cns}}} .batteur-part {
+    position: absolute;
+    font-weight: normal;
+    font-size: 20px;
+    top: 150px;
+    left: 30px;
+}
+
+.batteur{{{cns}}} .batteur-fill {
+    position: absolute;
+    font-weight: normal;
+    font-size: 20px;
+    top: 150px;
+    left: 150px;
+}
+
+.batteur{{{cns}}} .batteur-signature {
+    position: absolute;
+    font-weight: normal;
+    font-size: 20px;
+    top: 150px;
+    left: 270px;
+}
+
+.batteur{{{cns}}} .batteur-pos-canvas {
+    position: absolute;
+    top: 190px;
+    left: 16px;
+}

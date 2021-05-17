@@ -689,10 +689,10 @@ run(LV2_Handle instance, uint32_t sample_count)
     self->last_main_down += sample_count;
     batteur_tick(self->player, sample_count);
 
-    *self->part_index_p = batteur_get_part_index(self->player) + 1;
     *self->part_total_p = batteur_get_total_parts(self->currentBeat);
-    *self->fill_index_p = batteur_get_fill_index(self->player) + 1;
+    *self->part_index_p = *self->part_total_p == 0 ? 0 : batteur_get_part_index(self->player) + 1;
     *self->fill_total_p = batteur_get_total_fills(self->currentBeat, *self->part_index_p - 1);
+    *self->fill_index_p = *self->fill_total_p == 0 ? 0 : batteur_get_fill_index(self->player) + 1;
     *self->time_num_p = batteur_get_time_numerator(self->currentBeat);
     *self->time_denom_p = batteur_get_time_denominator(self->currentBeat);
     *self->beat_p = batteur_get_bar_position(self->player);
