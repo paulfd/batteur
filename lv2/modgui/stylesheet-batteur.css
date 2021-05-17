@@ -79,3 +79,32 @@
     left: 30px;
     bottom: 125px;
 }
+
+.batteur{{{cns}}} .batteur-knob-accent {
+    background-image: url(/resources/Small_Knob_03.png{{{ns}}});
+    background-repeat: no-repeat;
+    height: 35px;
+    position: absolute;
+    width: 35px;
+    z-index: 40;
+    color: black;
+    bottom: 140px;
+    right: 70px;
+}
+
+.batteur{{{cns}}} .batteur-knob-accent-value {
+    position: absolute;
+    font-weight: normal;
+    font-size: 20px;
+    top: 5px;
+    left: 40px;
+}
+
+.batteur{{{cns}}} .batteur-knob-accent-title {
+    position: absolute;
+    font-weight: normal;
+    font-size: 16px;
+    width: 100px;
+    top: -25px;
+    left: -10px;
+}
