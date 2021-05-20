@@ -25,6 +25,9 @@ set (BATTEUR_SOURCES
 )
 
 add_library(batteur_objects OBJECT ${BATTEUR_SOURCES})
+if (MSVC)
+    target_compile_definitions(batteur_objects PUBLIC NOMINMAX)
+endif()
 target_link_libraries(batteur_objects PUBLIC fmidi)
 target_include_directories(batteur_objects PUBLIC src)
 set_target_properties(batteur_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
