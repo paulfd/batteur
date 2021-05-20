@@ -19,7 +19,7 @@ extern "C" {
 
 typedef struct batteur_beat_t batteur_beat_t;
 typedef struct batteur_player_t batteur_player_t;
-typedef void (*batteur_note_cb_t)(int delay, uint8_t number, uint8_t value, void* cbdata);
+typedef void (*batteur_note_cb_t)(int delay, uint8_t number, float value, void* cbdata);
 typedef enum { 
   BATTEUR_STOPPED = 0,
   BATTEUR_INTRO,

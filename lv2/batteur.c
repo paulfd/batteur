@@ -62,7 +62,7 @@
 #define UNUSED(x) (void)(x)
 #define SWITCH_DURATION 0.75
 #define DEFAULT_ACCENT_NOTE 49
-#define DEFAULT_ACCENT_VELOCITY 100
+#define DEFAULT_ACCENT_VELOCITY 0.787
 
 typedef struct
 {
@@ -242,14 +242,14 @@ connect_port(LV2_Handle instance,
 }
 
 static void
-batteur_callback(int delay, uint8_t number, uint8_t value, void* cbdata)
+batteur_callback(int delay, uint8_t number, float value, void* cbdata)
 {
     batteur_plugin_t* self = (batteur_plugin_t*)cbdata;
     
     uint8_t msg[3] = { 
         value > 0 ? NOTE_ON : NOTE_OFF,
         number,
-        value
+        (uint8_t)(value * 127.0f)
     };
 
     LV2_Atom atom = { 

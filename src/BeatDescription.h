@@ -14,7 +14,7 @@ struct Note {
     double timestamp;
     double duration;
     uint8_t number;
-    uint8_t velocity;
+    float velocity;
 };
 
 using Sequence = std::vector<Note>;

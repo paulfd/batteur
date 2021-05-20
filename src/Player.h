@@ -6,7 +6,7 @@
 
 namespace batteur {
 
-using NoteCallback = std::function<void(int, uint8_t, uint8_t)>;
+using NoteCallback = std::function<void(int, uint8_t, float)>;
 
 class Player {
 public:
@@ -35,7 +35,7 @@ private:
     struct NoteEvents {
         int delay;
         uint8_t number;
-        uint8_t velocity;
+        float velocity;
     };
 
     void updateState();

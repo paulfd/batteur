@@ -35,7 +35,7 @@ static void printSequence(const batteur::Sequence& sequence)
     while (true) {
         const auto& note = sequence[i];
         fmt::print(
-            "{{ \"time\": {:.4f}, \"duration\": {:.4f}, \"number\": {:3d}, \"velocity\": {:3d} }}",
+            "{{ \"time\": {:.4f}, \"duration\": {:.4f}, \"number\": {:3d}, \"velocity\": {:.6f} }}",
             note.timestamp,
             note.duration,
             note.number,

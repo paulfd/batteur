@@ -120,7 +120,7 @@ void batteur_note_cb(batteur_player_t* player, batteur_note_cb_t callback, void*
         return;
     
     auto self = reinterpret_cast<batteur::Player*>(player);
-    self->setNoteCallback([=](int delay, uint8_t number, uint8_t velocity) {
+    self->setNoteCallback([=](int delay, uint8_t number, float velocity) {
         callback(delay, number, velocity, cbdata);
     });
 }

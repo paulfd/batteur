@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "BeatDescription.h"
+#include "MathHelpers.h"
 #include <cmath>
 
 namespace batteur {
@@ -267,7 +268,7 @@ void Player::tick(int sampleCount)
 
         const auto deferNote = [&] {
             deferredNotes.push_back({ noteOnDelay, noteIt->number, noteIt->velocity });
-            deferredNotes.push_back({ noteOffDelay, noteIt->number, 0 });
+            deferredNotes.push_back({ noteOffDelay, noteIt->number, 0.0f });
         };
         
         if (potentialMergeIt == potentialNotesToMerge.end()) {
@@ -277,7 +278,7 @@ void Player::tick(int sampleCount)
             if (noteOnDelay - potentialMergeIt->delay > mergingThreshold) {
                 deferNote();
             } else {
-                DBG("Merging note with number " << noteIt->number);
+                DBG("Merging note with number " << +noteIt->number);
             }
     
             potentialMergeIt->delay = noteOnDelay;
@@ -293,7 +294,8 @@ void Player::tick(int sampleCount)
 
     auto deferredIt = deferredNotes.begin();
     while (deferredIt != deferredNotes.end() && deferredIt->delay < sampleCount) {
-        noteCallback(deferredIt->delay, deferredIt->number, deferredIt->velocity);
+        float velocity = clamp(deferredIt->velocity, 0.0f, 1.0f);
+        noteCallback(deferredIt->delay, deferredIt->number, velocity);
         deferredIt++;
     }
 

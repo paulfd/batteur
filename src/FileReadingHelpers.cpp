@@ -112,7 +112,7 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromFile(nlohmann::jso
             }
 
             // It's a real note-on
-            returned.push_back({ timeInQuarters, 0.0, evt->data[1], evt->data[2] });
+            returned.push_back({ timeInQuarters, 0.0, evt->data[1], ((float)evt->data[2]) / 127.0f });
             break;
         default:
             break;
@@ -167,12 +167,9 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(nlohmann:
             return tl::make_unexpected(ReadingError::WrongNoteNumber);
 
         const auto valueField = note["velocity"];
-        if (valueField.is_null() || !valueField.is_number_integer())
+        if (valueField.is_null() || !valueField.is_number_float())
             return tl::make_unexpected(ReadingError::WrongNoteValue);
-        const auto value = valueField.get<uint8_t>();
-        if (value > 127)
-            return tl::make_unexpected(ReadingError::WrongNoteValue);
-
+        const auto value = valueField.get<float>();
 
         returned.push_back({ time, duration, number, value });
     }
