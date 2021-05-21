@@ -187,7 +187,7 @@ void Player::tick(int sampleCount)
     
         if (noteIt == current->end()) {
             if (queuedSequences.size() == 2 && state != State::Ending) {
-                DBG("Exiting fill-in state: removing the top sequence");
+                // DBG("Exiting fill-in state: removing the top sequence");
                 eraseFrontSequence();
                 state = State::Playing;
                 continue;
@@ -206,7 +206,7 @@ void Player::tick(int sampleCount)
             position = 0.0;
 
             if (queuedSequences.size() == 1 && state == State::Ending) {
-                DBG("Ending finished; resetting");
+                // DBG("Ending finished; resetting");
                 reset();
                 break;
             }
@@ -220,24 +220,24 @@ void Player::tick(int sampleCount)
             const auto qpb = currentBeat->quartersPerBar;
             const auto barThreshold = qpb - 0.7;
             const auto relFillStart = queuedSequences[1]->front().timestamp;
-            DBG("Could start fill in; relative position: " << relPosition
-                << ", fill start at " << relFillStart);
+            // DBG("Could start fill in; relative position: " << relPosition
+            //     << ", fill start at " << relFillStart);
             if (relPosition > barThreshold) {
                 if(relFillStart > barThreshold && relFillStart < relPosition && relFillStart < qpb) {
-                    DBG("Fill-in has a short bar; starting fill-in now");
+                    // DBG("Fill-in has a short bar; starting fill-in now");
                     eraseFrontSequence();
                     continue;
                 }
-                DBG("Deferring fill in next bar");
+                // DBG("Deferring fill in next bar");
             } else {
                 if (relFillStart < relPosition) {
-                    DBG("Starting fill-in now");
+                    // DBG("Starting fill-in now");
                     eraseFrontSequence();
                     continue;
                 }
 
                 if (relFillStart > barThreshold) {
-                    DBG("Fill-in has a short bar; skipping the first fill bar");
+                    // DBG("Fill-in has a short bar; skipping the first fill bar");
                     eraseFrontSequence();
                     movePosition(currentBeat->quartersPerBar);
                     continue;
