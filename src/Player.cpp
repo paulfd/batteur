@@ -250,7 +250,7 @@ void Player::tick(int sampleCount)
             break;
         }
 
-#if 1
+#if 0
         DBG("Seq: " << queuedSequences.size()
             << " | Pos/BlockEnd: " << position << "/" << blockEnd
             << " | current note (index/number/time/duration) : "
@@ -278,7 +278,7 @@ void Player::tick(int sampleCount)
             if (noteOnDelay - potentialMergeIt->delay > mergingThreshold) {
                 deferNote();
             } else {
-                DBG("Merging note with number " << +noteIt->number);
+                // DBG("Merging note with number " << +noteIt->number);
             }
     
             potentialMergeIt->delay = noteOnDelay;
