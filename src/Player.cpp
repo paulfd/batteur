@@ -411,5 +411,14 @@ int Player::getFillIndex() const noexcept
     return fillIndex;
 }
 
+void Player::suspendCallback() noexcept
+{
+    callbackGuard.lock();
+}
+
+void Player::resumeCallback() noexcept
+{
+    callbackGuard.unlock();
+}
 
 }

@@ -11,6 +11,8 @@ namespace fs = ghc::filesystem;
 namespace batteur {
 
 struct Note {
+    Note(double timestamp, double duration, uint8_t number, float velocity)
+    : timestamp(timestamp), duration(duration), number(number), velocity(velocity) {}
     double timestamp;
     double duration;
     uint8_t number;

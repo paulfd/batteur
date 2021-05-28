@@ -30,7 +30,8 @@ public:
     double getBarPosition() const noexcept;
     int getPartIndex() const noexcept;
     int getFillIndex() const noexcept;
-
+    void suspendCallback() noexcept;
+    void resumeCallback() noexcept;
 private:
     struct NoteEvents {
         int delay;
