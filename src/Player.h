@@ -13,6 +13,7 @@ public:
     Player();
     bool loadBeatDescription(const BeatDescription& description);
     const BeatDescription* getBeatDescription() { return currentBeat; }
+    const Sequence* getCurrentSequence() const noexcept;
     double getTempo() { return 60.0 / secondsPerQuarter; }
     bool start();
     bool stop();
@@ -28,6 +29,7 @@ public:
     enum class State { Stopped, Intro, Playing, Fill, Next, Ending };
     State getState() const noexcept;
     double getBarPosition() const noexcept;
+    double getSequencePosition() const noexcept;
     int getPartIndex() const noexcept;
     int getFillIndex() const noexcept;
     void suspendCallback() noexcept;

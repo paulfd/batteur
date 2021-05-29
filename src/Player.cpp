@@ -392,9 +392,7 @@ Player::State Player::getState() const noexcept
 
 double Player::getBarPosition() const noexcept
 {
-    const auto beat = currentBeat;
-    
-    if (!beat)
+    if (!currentBeat)
         return {};   
 
     return std::fmod(this->position * 4.0 / currentBeat->signature.denom, 
@@ -420,5 +418,19 @@ void Player::resumeCallback() noexcept
 {
     callbackGuard.unlock();
 }
+
+const Sequence* Player::getCurrentSequence() const noexcept
+{
+    if (queuedSequences.size() == 0)
+        return {};
+
+    return queuedSequences.front();
+}
+
+double Player::getSequencePosition() const noexcept
+{
+    return this->position;
+}
+
 
 }
