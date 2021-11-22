@@ -46,6 +46,7 @@ struct BeatDescription {
     std::vector<Part> parts;
     tl::optional<Sequence> ending;
     static std::unique_ptr<BeatDescription> buildFromFile(const fs::path& file, std::error_code& error);
+    static std::unique_ptr<BeatDescription> buildFromString(const fs::path& virtualFile, const std::string& string, std::error_code& error);
 };
 
 enum class BeatDescriptionError {

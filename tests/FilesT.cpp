@@ -62,3 +62,46 @@ TEST_CASE("[Files] Time signature 3")
     REQUIRE( beat->signature.num == 7 );
     REQUIRE( beat->signature.denom == 8 );
 }
+
+TEST_CASE("[Files] Read from string")
+{
+    std::error_code ec;
+    std::string file = R"(
+        {
+            "name": "Slow shuffle",
+            "group": "Blues",
+            "bpm" : 78,
+            "quarters_per_bar": 4,
+            "intro": { "filename" : "midi/shuffle_intro.mid" },
+            "parts": [
+                {
+                    "name": "Snare",
+                    "sequence" : { "filename" : "midi/shuffle_part.mid" },
+                    "fills": [
+                        { "filename" : "midi/snare_fill.mid" },
+                        { "filename" : "midi/snare_fill.mid" }
+                    ],
+                    "transition": { "filename" : "midi/snare_fill.mid" }
+                },
+                {
+                    "name": "Ride",
+                    "sequence" : { "filename" : "midi/shuffle_part_ride.mid" },
+                    "fills": [
+                        { "filename" : "midi/snare_fill.mid" }
+                    ],
+                    "transition": { "filename" : "midi/snare_fill.mid" }
+                }
+            ]
+        }
+    )";
+    auto beat = BeatDescription::buildFromString(fs::current_path() / "tests/files/shuffle.json", file, ec);
+    REQUIRE( beat );
+    REQUIRE( beat->bpm == 78 );
+    REQUIRE( beat->quartersPerBar == 4.0 );
+    REQUIRE( beat->intro );
+    REQUIRE( beat->parts.size() == 2 );
+    REQUIRE( beat->parts[0].name == "Snare" );
+    REQUIRE( beat->parts[1].name == "Ride" );
+    REQUIRE( beat->parts[0].fills.size() == 2 );
+    REQUIRE( beat->parts[1].fills.size() == 1 );
+}

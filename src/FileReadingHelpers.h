@@ -35,7 +35,8 @@ enum class QuartersPerBarError {
 
 // Helper functions
 
-tl::expected<batteur::Sequence, ReadingError> readSequence(nlohmann::json& json, const fs::path& rootDirectory);
+tl::expected<batteur::Sequence, ReadingError> readSequenceByName(const nlohmann::json& json, const fs::path& rootDirectory, const std::string& name = "");
+tl::expected<batteur::Sequence, ReadingError> readSequence(const nlohmann::json& json, const fs::path& rootDirectory);
 tl::expected<double, BPMError> checkBPM(const nlohmann::json& bpm);
 tl::expected<double, QuartersPerBarError> checkQuartersPerBar(const nlohmann::json& qpb);
 

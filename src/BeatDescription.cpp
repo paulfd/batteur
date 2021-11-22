@@ -77,16 +77,8 @@ void alignSequenceEnd(Sequence& sequence, double numBars, double quartersPerBar)
         note.timestamp += shift;
 }
 
-std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& file, std::error_code& error)
+std::unique_ptr<BeatDescription> buildDescriptionFromJson(const fs::path& virtualFile, const nlohmann::json& json, std::error_code& error)
 {
-    if (!fs::exists(file)) {
-        error = BeatDescriptionError::NonexistentFile;
-        return {};
-    }
-
-    fs::fstream inputStream { file, std::ios::ios_base::in };
-    nlohmann::json json;
-    inputStream >> json;
     auto beat = std::unique_ptr<BeatDescription>(new BeatDescription());
 
     // Minimal file
@@ -97,47 +89,51 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
     }
     beat->name = title;
 
-    const auto group = json["group"];
-    if (!group.is_null())
-        beat->group = group;
+    const auto group = json.find("group");
+    if (group != json.end())
+        beat->group = *group;
 
-    auto parts = json["parts"];
-    if (!parts.is_array() || parts.size() == 0) {
+    const auto parts = json.find("parts");
+    if (parts == json.end() || !parts->is_array() || parts->size() == 0) {
         error = BeatDescriptionError::NoParts;
         return {};
     }
 
-    beat->bpm = checkBPM(json["bpm"]).value_or(120.0);
+    beat->bpm = 120.0;
+    const auto bpm = json.find("bpm");
+    if (bpm != json.end())
+        beat->bpm = *bpm;    
 
     beat->quartersPerBar = 4;
     beat->signature = { 4, 4 };
-    auto qpb = json["quarters_per_bar"];
-    auto sig = json["signature"];
-    if (!qpb.is_null()) {
-        beat->quartersPerBar = checkQuartersPerBar(qpb).value_or(beat->quartersPerBar);
+    const auto qpb = json.find("quarters_per_bar");
+    const auto sig = json.find("signature");
+    if (qpb != json.end()) {
+        beat->quartersPerBar = checkQuartersPerBar(*qpb).value_or(beat->quartersPerBar);
         beat->signature.num = static_cast<int>(beat->quartersPerBar);
-    } else if (sig.is_array() && sig.size() == 2) {
-        if (sig[0].is_number_unsigned())
-            beat->signature.num = sig[0].get<int>();
+    } else if (sig != json.end() && sig->is_array() && sig->size() == 2) {
+        const auto s = *sig;
+        if (s[0].is_number_unsigned())
+            beat->signature.num = s[0].get<int>();
 
-        if (sig[1].is_number_unsigned())
-            beat->signature.denom = sig[1].get<int>();
+        if (s[1].is_number_unsigned())
+            beat->signature.denom = s[1].get<int>();
 
         beat->quartersPerBar = beat->signature.num * 4.0 / beat->signature.denom;
     }
 
-    const auto rootDirectory = file.parent_path();
+    const auto rootDirectory = virtualFile.parent_path();
 
-    if (auto seq = readSequence(json["intro"], rootDirectory))
+    if (auto seq = readSequenceByName(json, rootDirectory, "intro"))
         beat->intro = std::move(*seq);
 
-    if (auto seq = readSequence(json["ending"], rootDirectory))
+    if (auto seq = readSequenceByName(json, rootDirectory, "ending"))
         beat->ending = std::move(*seq);
 
-    for (auto& part : parts) {
+    for (auto& part : *parts) {
         Part newPart;
         newPart.name = part["name"];
-        auto mainLoop = readSequence(part["sequence"], rootDirectory);
+        auto mainLoop = readSequenceByName(part, rootDirectory, "sequence");
         if (!mainLoop)
             continue;
 
@@ -149,7 +145,7 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
             }
         }
 
-        if (auto seq = readSequence(part["transition"], rootDirectory)) {
+        if (auto seq = readSequenceByName(part, rootDirectory, "transition")) {
             newPart.transition = std::move(*seq);
         }
         beat->parts.push_back(std::move(newPart));
@@ -161,6 +157,25 @@ std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& 
     }
 
     return beat;
+}
+
+std::unique_ptr<BeatDescription> BeatDescription::buildFromFile(const fs::path& file, std::error_code& error)
+{
+    if (!fs::exists(file)) {
+        error = BeatDescriptionError::NonexistentFile;
+        return {};
+    }
+
+    fs::fstream inputStream { file, std::ios::ios_base::in };
+    nlohmann::json json;
+    inputStream >> json;
+    return buildDescriptionFromJson(file, json, error);
+}
+
+std::unique_ptr<BeatDescription> BeatDescription::buildFromString(const fs::path& virtualFile, const std::string& string, std::error_code& error)
+{
+    return buildDescriptionFromJson(
+        virtualFile, nlohmann::json::parse(string, nullptr, false), error);
 }
   
 }
