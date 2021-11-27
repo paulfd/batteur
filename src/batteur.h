@@ -30,6 +30,7 @@ typedef enum {
 } batteur_status_t;
 
 BATTEUR_EXPORTED_API  batteur_beat_t* batteur_load_beat(const char* filename);
+BATTEUR_EXPORTED_API  batteur_beat_t* batteur_load_beat_from_string(const char* filename, const char* string);
 BATTEUR_EXPORTED_API  void batteur_free_beat(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  const char* batteur_get_beat_name(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  const char* batteur_get_part_name(batteur_beat_t* beat, int part_index);

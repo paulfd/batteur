@@ -16,6 +16,16 @@ batteur_beat_t* batteur_load_beat(const char* filename)
     return reinterpret_cast<batteur_beat_t*>(beat.release());
 }
 
+batteur_beat_t* batteur_load_beat_from_string(const char* filename, const char* string)
+{
+    std::error_code ec;
+    auto beat = batteur::BeatDescription::buildFromString(filename, string, ec);
+    if (ec)
+        return NULL;
+
+    return reinterpret_cast<batteur_beat_t*>(beat.release());
+}
+
 void batteur_free_beat(batteur_beat_t* beat)
 {
     delete reinterpret_cast<batteur::BeatDescription*>(beat);
