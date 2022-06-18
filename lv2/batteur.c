@@ -131,6 +131,7 @@ typedef struct
     float main_switch_status;
     bool accent_pressed;
     char beat_file_path[MAX_PATH_SIZE];
+    char* bundle_path;
     int max_block_size;
     int accent_note;
     bool bpm_set_by_host;
@@ -308,6 +309,8 @@ instantiate(const LV2_Descriptor* descriptor,
     self->accent_note = DEFAULT_ACCENT_NOTE;
     self->last_main_down = -(int64_t)(SWITCH_DURATION * rate);
     self->nextBeat = NULL;
+    self->bundle_path = malloc(strlen(path) + 1);
+    strcpy(self->bundle_path, path);
 
     // Get the features from the host and populate the structure
     for (const LV2_Feature* const* f = features; *f; f++) {
@@ -341,15 +344,13 @@ instantiate(const LV2_Descriptor* descriptor,
     // The map feature is required
     if (!self->map) {
         lv2_log_error(&self->logger, "Map feature not found, aborting...\n");
-        free(self);
-        return NULL;
+        goto abort;
     }
 
     // The worker feature is required
     if (!self->worker) {
         lv2_log_error(&self->logger, "Worker feature not found, aborting...\n");
-        free(self);
-        return NULL;
+        goto abort;
     }
 
     // Map the URIs we will need
@@ -393,13 +394,17 @@ instantiate(const LV2_Descriptor* descriptor,
     if (!supports_bounded_block_size && !supports_fixed_block_size && !options_has_block_size) {
         lv2_log_error(&self->logger,
             "Bounded block size not supported and options gave no block size, aborting...\n");
-        free(self);
-        return NULL;
+        goto abort;
     }
 
     self->player = batteur_new();
     batteur_note_cb(self->player, &batteur_callback, (void*)self);
     return (LV2_Handle)self;
+
+abort:
+    free(self->bundle_path);
+    free(self);
+    return NULL;
 }
 
 static void
@@ -409,6 +414,7 @@ cleanup(LV2_Handle instance)
     batteur_free_beat(self->currentBeat);
     batteur_free_beat(self->nextBeat);
     batteur_free(self->player);
+    free(self->bundle_path);
     free(self);
 }
 
@@ -814,7 +820,18 @@ work(LV2_Handle instance,
     const LV2_Atom* atom = (const LV2_Atom*)data;
     if (atom->type == self->beat_description_uri) {
         const char* file_path = LV2_ATOM_BODY_CONST(atom);
-        batteur_beat_t* beat = batteur_load_beat(file_path);
+        batteur_beat_t* beat;
+
+        if (file_path && file_path[0] == '/') {
+            beat = batteur_load_beat(file_path);
+            lv2_log_note(&self->logger, "Loading: %s\n", file_path);
+        } else {
+            char* bundled_file_path = malloc(strlen(self->bundle_path) + strlen(file_path) + 1);
+            strcpy(bundled_file_path, self->bundle_path);
+            strcat(bundled_file_path, file_path);
+            lv2_log_note(&self->logger, "Loading: %s\n", bundled_file_path);
+            beat = batteur_load_beat(bundled_file_path);
+        }
         if (beat) {
             self->nextBeat = beat;
         }

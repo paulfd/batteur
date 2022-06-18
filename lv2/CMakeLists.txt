@@ -44,6 +44,12 @@ add_custom_command(TARGET ${LV2PLUGIN_PRJ_NAME} POST_BUILD
         "${PROJECT_BINARY_DIR}/modgui"
 )
 
+add_custom_command(TARGET ${LV2PLUGIN_PRJ_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${PROJECT_SOURCE_DIR}/beats"
+        "${PROJECT_BINARY_DIR}/beats"
+)
+
 # Installation
 if (NOT MSVC)
     install (DIRECTORY ${PROJECT_BINARY_DIR} DESTINATION ${LV2PLUGIN_INSTALL_DIR}
