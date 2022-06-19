@@ -8,105 +8,105 @@
   lv2:binary <@PROJECT_NAME@@CMAKE_SHARED_LIBRARY_SUFFIX@> ;
   rdfs:seeAlso <@PROJECT_NAME@.ttl>, <modgui.ttl>.
 
-  <@LV2PLUGIN_URI@#Blues Jump>
+  <@LV2PLUGIN_URI@#BluesJump>
   a pset:Preset ;
   rdfs:label "Blues Jump" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues Jump.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues%20Jump.json> ].
 
-  <@LV2PLUGIN_URI@#Blues Shuffle>
+  <@LV2PLUGIN_URI@#BluesShuffle>
   a pset:Preset ;
   rdfs:label "Blues Shuffle" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues Shuffle.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues%20Shuffle.json> ].
 
-  <@LV2PLUGIN_URI@#Blues Slow>
+  <@LV2PLUGIN_URI@#BluesSlow>
   a pset:Preset ;
   rdfs:label "Blues Slow" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues Slow.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues%20Slow.json> ].
 
   <@LV2PLUGIN_URI@#Blues>
   a pset:Preset ;
   rdfs:label "Blues" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Blues.json> ].
 
   <@LV2PLUGIN_URI@#Funk>
   a pset:Preset ;
   rdfs:label "Funk" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Funk.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Funk.json> ].
 
-  <@LV2PLUGIN_URI@#Jazz Ballad>
+  <@LV2PLUGIN_URI@#JazzBallad>
   a pset:Preset ;
   rdfs:label "Jazz Ballad" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz Ballad.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz%20Ballad.json> ].
 
-  <@LV2PLUGIN_URI@#Jazz Jump Swing>
+  <@LV2PLUGIN_URI@#JazzJumpSwing>
   a pset:Preset ;
   rdfs:label "Jazz Jump Swing" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz Jump Swing.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz%20Jump%20Swing.json> ].
 
-  <@LV2PLUGIN_URI@#Jazz Light Shuffle>
+  <@LV2PLUGIN_URI@#JazzLightShuffle>
   a pset:Preset ;
   rdfs:label "Jazz Light Shuffle" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz Light Shuffle.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz%20Light%20Shuffle.json> ].
 
-  <@LV2PLUGIN_URI@#Jazz Shuffle>
+  <@LV2PLUGIN_URI@#JazzShuffle>
   a pset:Preset ;
   rdfs:label "Jazz Shuffle" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz Shuffle.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz%20Shuffle.json> ].
 
-  <@LV2PLUGIN_URI@#Jazz Swing>
+  <@LV2PLUGIN_URI@#JazzSwing>
   a pset:Preset ;
   rdfs:label "Jazz Swing" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz Swing.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Jazz%20Swing.json> ].
 
   <@LV2PLUGIN_URI@#Pop>
   a pset:Preset ;
   rdfs:label "Pop" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Pop.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Pop.json> ].
 
-  <@LV2PLUGIN_URI@#Pop Ballad>
+  <@LV2PLUGIN_URI@#PopBallad>
   a pset:Preset ;
   rdfs:label "Pop Ballad" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Pop Ballad.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Pop%20Ballad.json> ].
 
   <@LV2PLUGIN_URI@#Rock>
   a pset:Preset ;
   rdfs:label "Rock" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock.json> ].
 
-  <@LV2PLUGIN_URI@#Rock 2>
+  <@LV2PLUGIN_URI@#Rock2>
   a pset:Preset ;
   rdfs:label "Rock 2" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock 2.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock%202.json> ].
 
-  <@LV2PLUGIN_URI@#Rock 3>
+  <@LV2PLUGIN_URI@#Rock3>
   a pset:Preset ;
   rdfs:label "Rock 3" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock 3.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock%203.json> ].
 
-  <@LV2PLUGIN_URI@#Rock 4>
+  <@LV2PLUGIN_URI@#Rock4>
   a pset:Preset ;
   rdfs:label "Rock 4" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock 4.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock%204.json> ].
 
-  <@LV2PLUGIN_URI@#Rock Ballad>
+  <@LV2PLUGIN_URI@#RockBallad>
   a pset:Preset ;
   rdfs:label "Rock Ballad" ;
   lv2:appliesTo <@LV2PLUGIN_URI@> ;
-  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock Ballad.json> .
+  state:state [ <https://github.com/paulfd/batteur:beatDescription> <beats/Rock%20Ballad.json> ].
 
