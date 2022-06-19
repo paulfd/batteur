@@ -521,19 +521,9 @@ main_switch_event(batteur_plugin_t* self, float switch_status)
 static void
 beat_description_event(batteur_plugin_t* self, const LV2_Atom* atom)
 {
-    const uint32_t original_atom_size = lv2_atom_total_size((const LV2_Atom*)atom);
-    const uint32_t null_terminated_atom_size = original_atom_size + 1;
-    char atom_buffer[null_terminated_atom_size];
-    memcpy(&atom_buffer, atom, original_atom_size);
-    atom_buffer[original_atom_size] = 0; // Null terminate the string for safety
-    LV2_Atom* file_path = (LV2_Atom*)&atom_buffer;
-    file_path->type = self->beat_description_uri;
-
     // If the parameter is different from the current one we send it through
-    if (strcmp(self->beat_file_path, LV2_ATOM_BODY_CONST(file_path)))
-        self->worker->schedule_work(self->worker->handle, 
-                                    null_terminated_atom_size,
-                                    file_path);
+    if (strncmp(self->beat_file_path, LV2_ATOM_BODY_CONST(atom), strlen(self->beat_file_path)))
+        self->worker->schedule_work(self->worker->handle, lv2_atom_total_size(atom), atom);
 }
 
 static void
@@ -820,23 +810,22 @@ work(LV2_Handle instance,
     }
 
     const LV2_Atom* atom = (const LV2_Atom*)data;
-    if (atom->type == self->beat_description_uri) {
-        const char* file_path = LV2_ATOM_BODY_CONST(atom);
+
+    // Assume a path is for a beat
+    if (atom->type == self->beat_description_uri || atom->type == self->atom_path_uri) {
+        char* file_path = malloc(atom->size + 1);
+        const char* atom_body = (const char*)LV2_ATOM_BODY_CONST(atom);
         batteur_beat_t* beat;
 
-        if (file_path && file_path[0] == '/') {
-            beat = batteur_load_beat(file_path);
-            lv2_log_note(&self->logger, "Loading: %s\n", file_path);
-        } else {
-            char* bundled_file_path = malloc(strlen(self->bundle_path) + strlen(file_path) + 1);
-            strcpy(bundled_file_path, self->bundle_path);
-            strcat(bundled_file_path, file_path);
-            lv2_log_note(&self->logger, "Loading: %s\n", bundled_file_path);
-            beat = batteur_load_beat(bundled_file_path);
-        }
+        file_path[0] = '\0';
+        strncat(file_path, atom_body, atom->size);
+        lv2_log_note(&self->logger, "Loading: %s\n", file_path);
+        beat = batteur_load_beat(file_path);
+
         if (beat) {
             self->nextBeat = beat;
         }
+        free(file_path);
     } else {
         lv2_log_error(&self->logger, "[worker] Got an unknown atom.\n");
         if (self->unmap)
@@ -863,7 +852,8 @@ work_response(LV2_Handle instance,
         return LV2_WORKER_ERR_UNKNOWN;
 
     const LV2_Atom* atom = (const LV2_Atom*)data;
-    if (atom->type == self->beat_description_uri) {
+    // Assume a path is for a beat
+    if (atom->type == self->beat_description_uri || atom->type == self->atom_path_uri) {
         const char* beat_file_path = LV2_ATOM_BODY_CONST(atom);
         if (self->nextBeat) {
             batteur_beat_t* beat = self->currentBeat;
