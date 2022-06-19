@@ -765,12 +765,14 @@ restore(LV2_Handle instance,
     const void* value;
     value = retrieve(handle, self->beat_description_uri, &size, &type, &val_flags);
     if (value) {
-        // lv2_log_note(&self->logger, "Restoring the file %s\n", (const char*)value);
+        lv2_log_note(&self->logger, "Restoring the file %s\n", (const char*)value);
         batteur_beat_t* beat = batteur_load_beat((const char *)value);
         if (beat) {
             strcpy(self->beat_file_path, (const char *)value);
             self->currentBeat = beat;
             batteur_load(self->player, beat);
+            if (self->bpm_set_by_host)
+                batteur_set_tempo(self->player, self->bpm);
         }
     }
     return LV2_STATE_SUCCESS;
