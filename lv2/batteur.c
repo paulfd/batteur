@@ -87,6 +87,8 @@ typedef struct
     float* part_total_p;
     float* fill_index_p;
     float* fill_total_p;
+    const float* tempo_p;
+    const float* tempo_sync_p;
 
     // Atom forge
     LV2_Atom_Forge forge; ///< Forge for writing atoms in run thread
@@ -130,13 +132,14 @@ typedef struct
     bool expect_nominal_block_length;
     float main_switch_status;
     bool accent_pressed;
-    char beat_file_path[MAX_PATH_SIZE];
+    char beat_file_path[MAX_PATH_SIZE + 1];
     char* bundle_path;
     int max_block_size;
     int accent_note;
-    bool bpm_set_by_host;
+    bool sync_to_host_tempo;
     bool transport_played;
-    float bpm;
+    float knob_bpm;
+    float host_bpm;
     float speed;
     float beat;
     int64_t last_main_up;
@@ -158,6 +161,8 @@ enum {
     PART_TOTAL_PORT,
     FILL_INDEX_PORT,
     FILL_TOTAL_PORT,
+    TEMPO_PORT,
+    TEMPO_SYNC_PORT,
 };
 
 static void
@@ -237,6 +242,12 @@ connect_port(LV2_Handle instance,
     case FILL_TOTAL_PORT:
         self->fill_total_p = (float*)data;
         break;
+    case TEMPO_PORT:
+        self->tempo_p = (const float*)data;
+        break;
+    case TEMPO_SYNC_PORT:
+        self->tempo_sync_p = (const float*)data;
+        break;
     default:
         break;
     }
@@ -298,12 +309,12 @@ instantiate(const LV2_Descriptor* descriptor,
     self->sample_rate = rate;
     self->expect_nominal_block_length = false;
     self->beat_file_path[0] = '\0';
+    self->beat_file_path[MAX_PATH_SIZE] = '\0';
     self->accent_pressed = false;
     self->last_main_up = 0;
     self->beat = 0.0f;
-    self->bpm_set_by_host = false;
-    self->transport_played = false;
-    self->bpm = 120.0f;
+    self->host_bpm = 120.0f;
+    self->knob_bpm = 120.0f;
     self->speed = 1.0f;
     self->main_switch_status = 0.0f;
     self->accent_note = DEFAULT_ACCENT_NOTE;
@@ -600,29 +611,21 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
 
     if (bpm && bpm->type == self->atom_float_uri) {
         // Tempo changed, update BPM
-        self->bpm = ((LV2_Atom_Float*)bpm)->body;
-        batteur_set_tempo(self->player, self->bpm);
-        self->bpm_set_by_host = true;
-        // lv2_log_note(&self->logger, "BPM changed to: %.4f\n", self->bpm);
+        self->host_bpm = ((LV2_Atom_Float*)bpm)->body;
+        if (self->sync_to_host_tempo)
+            batteur_set_tempo(self->player, self->host_bpm);
     }
 
     if (speed && speed->type == self->atom_float_uri) {
         // Speed changed, e.g. 0 (stop) to 1 (play)
         self->speed = ((LV2_Atom_Float*)speed)->body;
-        if (self->speed == 0.0f) {
-            if (self->transport_played) {
-                batteur_all_off(self->player);
-                self->transport_played = false;
-            }
-        } else {
-            self->transport_played = true;
-        }
-        // lv2_log_note(&self->logger, "Speed changed to: %.4f\n", self->speed);
+        if (self->speed == 0.0f && self->sync_to_host_tempo) {
+            batteur_all_off(self->player);
+        } 
     }
 
     if (beat && beat->type == self->atom_float_uri) {
         self->beat = ((LV2_Atom_Float*)beat)->body;
-        // lv2_log_note(&self->logger, "Beat not handled: %.4f\n", self->beat);
     }
 }
 
@@ -665,13 +668,24 @@ run(LV2_Handle instance, uint32_t sample_count)
         }
     }
 
+    if (self->sync_to_host_tempo != (bool)(*self->tempo_sync_p)) {
+        self->sync_to_host_tempo = (bool)(*self->tempo_sync_p);
+        batteur_set_tempo(self->player, 
+            self->sync_to_host_tempo ? self->host_bpm : self->knob_bpm);
+    }
+    
+    if (*self->tempo_p != self->knob_bpm) {
+        self->knob_bpm = *self->tempo_p;
+        if (!self->sync_to_host_tempo)
+            batteur_set_tempo(self->player, self->knob_bpm);
+    }
+
     if (*self->main_p != self->main_switch_status) {
         main_switch_event(self, *self->main_p);
         self->main_switch_status = *self->main_p;
         send_beat_name(self);
         send_part_name(self);
     }
-
     if (*self->accent_p) { // TODO: make this simpler with lv2:trigger?
         if (!self->accent_pressed) {
             batteur_callback(0, (uint8_t)*self->accent_note_p, DEFAULT_ACCENT_VELOCITY, self);
@@ -761,8 +775,8 @@ restore(LV2_Handle instance,
             strcpy(self->beat_file_path, (const char *)value);
             self->currentBeat = beat;
             batteur_load(self->player, beat);
-            if (self->bpm_set_by_host)
-                batteur_set_tempo(self->player, self->bpm);
+            batteur_set_tempo(self->player, 
+                self->sync_to_host_tempo ? self->host_bpm : self->knob_bpm);
         }
     }
     return LV2_STATE_SUCCESS;
@@ -854,16 +868,25 @@ work_response(LV2_Handle instance,
     const LV2_Atom* atom = (const LV2_Atom*)data;
     // Assume a path is for a beat
     if (atom->type == self->beat_description_uri || atom->type == self->atom_path_uri) {
-        const char* beat_file_path = LV2_ATOM_BODY_CONST(atom);
         if (self->nextBeat) {
             batteur_beat_t* beat = self->currentBeat;
             if (batteur_load(self->player, self->nextBeat)) {
                 self->currentBeat = self->nextBeat;
                 self->nextBeat = beat; // will be cleaned up on the next load
-                if (self->bpm_set_by_host)
-                    batteur_set_tempo(self->player, self->bpm);
+                batteur_set_tempo(self->player, 
+                    self->sync_to_host_tempo ? self->host_bpm : self->knob_bpm);
 
-                strcpy(self->beat_file_path, beat_file_path);
+                // Update the file path
+                // TODO: could swap the name with the beat to be honest...
+                uint32_t size = atom->size;
+                if (size >= (MAX_PATH_SIZE)) {
+                    lv2_log_error(&self->logger, "File path size too big (%d)! Filename will be truncated.", size);
+                    size = MAX_PATH_SIZE;
+                }
+                    
+                const char* beat_file_path = LV2_ATOM_BODY_CONST(atom);
+                strncpy(self->beat_file_path, beat_file_path, size);
+                self->beat_file_path[size] = '\0';
             }
         }
     } else {
