@@ -2,7 +2,7 @@
     background-image: url(/resources/background.png{{{ns}}});
     position: absolute;
     width: 333px;
-    height: 439px;
+    height: 487px;
     font-family: "Arial", sans-serif;
     font-size: 18px;
     font-weight: bold;
@@ -147,4 +147,79 @@
     position: absolute;
     top: 180px;
     left: 16px;
+}
+
+.batteur{{{cns}}} .batteur-tempo-switch {
+    background-image: url(/resources/switch-key.png{{{ns}}});
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    background-size: auto 132px;
+    left: 180px;
+    bottom: 210px;
+    cursor:pointer;
+    height:66px;
+    width: 66px;
+    margin: auto;
+    position: absolute !important;
+    z-index: 40;
+}
+
+.batteur{{{cns}}} .batteur-tempo-switch.off {
+    background-position-y: top !important
+}
+
+.batteur{{{cns}}} .batteur-tempo-led {
+    background-image:url(/resources/yellow-led.png{{{ns}}}) !important;
+    background-position: left center;
+    background-repeat:no-repeat;
+    overflow: hidden;
+    height:32px;
+    width:32px;
+    left: 234px;
+    bottom: 227px;
+    margin-top: 15px;
+    position: absolute;
+}
+
+.batteur{{{cns}}} .batteur-tempo-switch-title {
+    position: absolute;
+    font-weight: normal;
+    font-size: 18px;
+    width: 100px;
+    top: 22px;
+    left: 85px;
+}
+
+.batteur{{{cns}}} .batteur-tempo-led.off {
+    background-position: right center;
+}
+
+.batteur{{{cns}}} .batteur-knob-tempo {
+    background-image: url(/resources/Small_Knob_03.png{{{ns}}});
+    background-repeat: no-repeat;
+    height: 35px;
+    position: absolute;
+    width: 35px;
+    z-index: 40;
+    color: black;
+    bottom: 225px;
+    left: 55px;
+}
+
+.batteur{{{cns}}} .batteur-knob-tempo-value {
+    position: absolute;
+    font-weight: normal;
+    font-size: 20px;
+    top: 7px;
+    left: 40px;
+    width: 100px
+}
+
+.batteur{{{cns}}} .batteur-knob-tempo-title {
+    position: absolute;
+    font-weight: normal;
+    font-size: 16px;
+    width: 100px;
+    top: -25px;
+    left: -10px;
 }

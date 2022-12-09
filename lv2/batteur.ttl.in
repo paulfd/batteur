@@ -13,7 +13,7 @@
 @prefix time: 	 <http://lv2plug.in/ns/ext/time#> .
 @prefix work:    <http://lv2plug.in/ns/ext/worker#> .
 @prefix pprops:  <http://lv2plug.in/ns/ext/port-props#> .
-
+@prefix units: 	 <http://lv2plug.in/ns/extensions/units#> .
 
 <@LV2PLUGIN_URI@:beatDescription>
       a lv2:Parameter ; 
@@ -191,4 +191,23 @@
 		lv2:default 0 ;
 		lv2:minimum 0 ;
 		lv2:maximum 65535 ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 13 ;
+		lv2:symbol "tempo" ;
+		lv2:name "Tempo" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 120 ;
+		lv2:minimum 20 ;
+		lv2:maximum 300 ;
+		units:unit units:bpm ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 14 ;
+		lv2:symbol "temposync" ;
+		lv2:name "Use host tempo" ;
+		lv2:portProperty lv2:toggled ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 1 ;
     ] .
