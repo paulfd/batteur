@@ -1,6 +1,7 @@
 @prefix atom:    <http://lv2plug.in/ns/ext/atom#> .
 @prefix doap:    <http://usefulinc.com/ns/doap#> .
 @prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix mod:     <http://moddevices.com/ns/mod#> .
 @prefix lv2:     <http://lv2plug.in/ns/lv2core#> .
 @prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -73,7 +74,7 @@
 		lv2:index 2 ;
 		lv2:symbol "main" ;
 		lv2:name "Main Switch" ;
-		lv2:portProperty lv2:toggled ;
+		lv2:portProperty lv2:toggled, mod:preferMomentaryOnByDefault;
 		lv2:default 0 ;
 		lv2:minimum 0 ;
 		lv2:maximum 1 ;
@@ -82,7 +83,7 @@
 		lv2:index 3 ;
 		lv2:symbol "accent" ;
 		lv2:name "Accent Switch" ;
-		lv2:portProperty lv2:toggled ;
+		lv2:portProperty lv2:toggled, mod:preferMomentaryOnByDefault;
 		lv2:default 0 ;
 		lv2:minimum 0 ;
 		lv2:maximum 1 ;
