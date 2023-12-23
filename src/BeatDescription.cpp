@@ -1,9 +1,9 @@
 #include "BeatDescription.h"
 #include "MathHelpers.h"
-#include <fmidi/fmidi.h>
+#include "fmidi/fmidi.h"
 #include "tl/expected.hpp"
 #include "FileReadingHelpers.h"
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 using nlohmann::json;
 

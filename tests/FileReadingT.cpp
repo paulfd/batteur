@@ -1,29 +1,29 @@
 #include "FileReadingHelpers.h"
-#include "catch.hpp"
+#include <catch2/catch_all.hpp>
 using namespace Catch::literals;
 using namespace nlohmann;
 
-TEST_CASE("[Files] BPM Not present")
+TEST_CASE("BPM Not present", "[Files]")
 {
     const json j;
     REQUIRE( !checkBPM(j).has_value() );
     REQUIRE( checkBPM(j).error() == BPMError::NotPresent );
 }
 
-TEST_CASE("[Files] BPM Nan 1")
+TEST_CASE("BPM Nan 1", "[Files]")
 {
     const auto j = "\"wat\""_json;
     REQUIRE( !checkBPM(j).has_value() );
     REQUIRE( checkBPM(j).error() == BPMError::NotANumber );
 }
 
-TEST_CASE("[Files] BPM Nan 2")
+TEST_CASE("BPM Nan 2", "[Files]")
 {
     const auto j = "\"5.4\""_json;
     REQUIRE( !checkBPM(j).has_value() );
     REQUIRE( checkBPM(j).error() == BPMError::NotANumber );
 }
-TEST_CASE("[Files] BPM Negative")
+TEST_CASE("BPM Negative", "[Files]")
 {
     const auto j = "-5.4"_json;
     REQUIRE( !checkBPM(j).has_value() );
@@ -31,34 +31,34 @@ TEST_CASE("[Files] BPM Negative")
 }
 
 
-TEST_CASE("[Files] BPM OK")
+TEST_CASE("BPM OK", "[Files]")
 {
     const auto j = "5.4"_json;
     REQUIRE( checkBPM(j).value() == 5.4 );
 }
 
-TEST_CASE("[Files] QuartersPerBar Not present")
+TEST_CASE("QuartersPerBar Not present", "[Files]")
 {
     const json j;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
     REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotPresent );
 }
 
-TEST_CASE("[Files] QuartersPerBar Nan 1")
+TEST_CASE("QuartersPerBar Nan 1", "[Files]")
 {
     const auto j = "\"wat\""_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
     REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotANumber );
 }
 
-TEST_CASE("[Files] QuartersPerBar Nan 2")
+TEST_CASE("QuartersPerBar Nan 2", "[Files]")
 {
     const auto j = "\"5.4\""_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
     REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::NotANumber );
 }
 
-TEST_CASE("[Files] QuartersPerBar Nan 4")
+TEST_CASE("QuartersPerBar Nan 4", "[Files]")
 {
     const auto j = "-5"_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
@@ -66,20 +66,20 @@ TEST_CASE("[Files] QuartersPerBar Nan 4")
 }
 
 
-TEST_CASE("[Files] QuartersPerBar 0")
+TEST_CASE("QuartersPerBar 0", "[Files]")
 {
     const auto j = "0"_json;
     REQUIRE( !checkQuartersPerBar(j).has_value() );
     REQUIRE( checkQuartersPerBar(j).error() == QuartersPerBarError::Zero );
 }
 
-TEST_CASE("[Files] QuartersPerBar OK")
+TEST_CASE("QuartersPerBar OK", "[Files]")
 {
     const auto j = "4"_json;
     REQUIRE( checkQuartersPerBar(j).value() == 4 );
 }
 
-TEST_CASE("[Files] ReadMidiFile errors")
+TEST_CASE("ReadMidiFile errors", "[Files]")
 {
     SECTION("Empty")
     {
@@ -138,7 +138,7 @@ TEST_CASE("[Files] ReadMidiFile errors")
     }
 }
 
-TEST_CASE("[Files] ReadMidiFile files")
+TEST_CASE("ReadMidiFile files", "[Files]")
 {
     SECTION("Test file 1")
     {

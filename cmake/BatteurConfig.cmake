@@ -1,4 +1,4 @@
-set(CMAKE_CXX_STANDARD 11 CACHE STRING "C++ standard to be used")
+set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to be used")
 set(CMAKE_C_STANDARD 99 CACHE STRING "C standard to be used")
 
 # Export the compile_commands.json file
@@ -40,13 +40,13 @@ endif()
 
 # If we build with Clang use libc++
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
-set(USE_LIBCPP ON CACHE BOOL "Use libc++ with clang")
-if (USE_LIBCPP)
-add_compile_options(-stdlib=libc++)
-# Presumably need the above for linking too, maybe other options missing as well
-add_link_options(-stdlib=libc++)   # New command on CMake master, not in 3.12 release
-add_link_options(-lc++abi)   # New command on CMake master, not in 3.12 release
-endif()
+    set(USE_LIBCPP ON CACHE BOOL "Use libc++ with clang")
+    if (USE_LIBCPP)
+    add_compile_options(-stdlib=libc++)
+        # Presumably need the above for linking too, maybe other options missing as well
+        add_link_options(-stdlib=libc++)   # New command on CMake master, not in 3.12 release
+        add_link_options(-lc++abi)   # New command on CMake master, not in 3.12 release
+    endif()
 endif()
 
 include (CheckLibraryExists)
@@ -71,7 +71,6 @@ function (show_build_info_if_needed)
 Project name:                  ${PROJECT_NAME}
 Build type:                    ${CMAKE_BUILD_TYPE}
 Build processor:               ${BATTEUR_SYSTEM_PROCESSOR}
-Build as shared library:       ${BATTEUR_SHARED}
 Build JACK stand-alone client: ${BATTEUR_JACK}
 Build LV2 plug-in:             ${BATTEUR_LV2}
 Build tests:                   ${BATTEUR_TESTS}

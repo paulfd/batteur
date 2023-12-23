@@ -1,16 +1,16 @@
 #include "BeatDescription.h"
-#include "catch.hpp"
+#include <catch2/catch_all.hpp>
 using namespace Catch::literals;
 using namespace batteur;
 
-TEST_CASE("[Files] Empty filename")
+TEST_CASE("Empty filename", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile("", ec);
     REQUIRE( !beat );
 }
 
-TEST_CASE("[Files] Nonexistent filename")
+TEST_CASE("Nonexistent filename", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile("fake_file.json", ec);
@@ -18,7 +18,7 @@ TEST_CASE("[Files] Nonexistent filename")
     REQUIRE( ec == BeatDescriptionError::NonexistentFile );
 }
 
-TEST_CASE("[Files] Existing file")
+TEST_CASE("Existing file", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/shuffle.json", ec);
@@ -33,7 +33,7 @@ TEST_CASE("[Files] Existing file")
     REQUIRE( beat->parts[1].fills.size() == 1 );
 }
 
-TEST_CASE("[Files] Time signature 1")
+TEST_CASE("Time signature 1", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig1.json", ec);
@@ -43,7 +43,7 @@ TEST_CASE("[Files] Time signature 1")
     REQUIRE( beat->signature.denom == 4 );
 }
 
-TEST_CASE("[Files] Time signature 2")
+TEST_CASE("Time signature 2", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig2.json", ec);
@@ -53,7 +53,7 @@ TEST_CASE("[Files] Time signature 2")
     REQUIRE( beat->signature.denom == 8 );
 }
 
-TEST_CASE("[Files] Time signature 3")
+TEST_CASE("Time signature 3", "[Files]")
 {
     std::error_code ec;
     auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig3.json", ec);
@@ -63,7 +63,7 @@ TEST_CASE("[Files] Time signature 3")
     REQUIRE( beat->signature.denom == 8 );
 }
 
-TEST_CASE("[Files] Read from string")
+TEST_CASE("Read from string", "[Files]")
 {
     std::error_code ec;
     std::string file = R"(
@@ -106,7 +106,8 @@ TEST_CASE("[Files] Read from string")
     REQUIRE( beat->parts[1].fills.size() == 1 );
 }
 
-TEST_CASE("[Files] Read from string 2") {
+TEST_CASE("Read from string 2" , "[Files]")
+{
     std::error_code ec;
     std::string file = R"(
 {
