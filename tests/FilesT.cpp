@@ -345,5 +345,51 @@ TEST_CASE("Read from string 2" , "[Files]")
     REQUIRE( beat->parts[1].fills.size() == 2 );
     REQUIRE( beat->parts[0].transition );
     REQUIRE( beat->parts[1].transition );
+}
 
+TEST_CASE("Read from string with shorthand notation" , "[Files]")
+{
+    std::error_code ec;
+    std::string file = R"(
+{
+  "name": "Shuffle",
+  "group": "Blues",
+  "bpm": 120.0,
+  "quarters_per_bar": 4.0,
+  "parts": [
+    {
+      "name": "Hat",
+      "sequence": {
+        "notes": [
+          { "t": 0.0000, "d": 0.3125, "n":  36, "v": 0.755906 },
+          { "t": 0.0000, "d": 0.6208, "n":  42, "v": 0.708661 },
+          { "t": 0.9990, "d": 0.6250, "n":  42, "v": 0.708661 },
+          { "t": 1.0094, "d": 0.6250, "n":  38, "v": 0.755906 },
+          { "t": 1.9948, "d": 0.6250, "n":  36, "v": 0.779528 },
+          { "t": 2.0083, "d": 0.6125, "n":  42, "v": 0.716535 },
+          { "t": 2.9844, "d": 0.6250, "n":  38, "v": 0.763780 },
+          { "t": 3.0021, "d": 0.6208, "n":  42, "v": 0.700787 }
+        ]
+      },
+      "fills": []
+    }
+  ]
+}
+    )";
+
+    auto beat = BeatDescription::buildFromString(fs::current_path() / "tests/files/shuffle.json", file, ec);
+    REQUIRE( beat );
+    REQUIRE( beat->bpm == 120 );
+    REQUIRE( beat->quartersPerBar == 4.0 );
+    REQUIRE( beat->parts.size() == 1 );
+    REQUIRE( beat->parts[0].name == "Hat" );
+    REQUIRE( beat->parts[0].mainLoop.size() == 8);
+    REQUIRE( beat->parts[0].mainLoop[0].timestamp == 0.0 );
+    REQUIRE( beat->parts[0].mainLoop[0].duration == 0.3125 );
+    REQUIRE( beat->parts[0].mainLoop[0].number == 36 );
+    REQUIRE( beat->parts[0].mainLoop[0].velocity == 0.755906f );
+    REQUIRE( beat->parts[0].mainLoop[7].timestamp == 3.0021 );
+    REQUIRE( beat->parts[0].mainLoop[7].duration == 0.6208 );
+    REQUIRE( beat->parts[0].mainLoop[7].number == 42 );
+    REQUIRE( beat->parts[0].mainLoop[7].velocity == 0.700787f );
 }

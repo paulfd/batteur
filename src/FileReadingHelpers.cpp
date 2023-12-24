@@ -1,6 +1,8 @@
 #include "FileReadingHelpers.h"
 #include "MathHelpers.h"
 #include "MidiHelpers.h"
+#include "tl/expected.hpp"
+#include "tl/optional.hpp"
 #include <algorithm>
 
 tl::optional<double> getQuarterPerBars(const fmidi_event_t& evt)
@@ -137,6 +139,26 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromFile(const nlohman
     return returned;
 }
 
+using nlohmann_iter = nlohmann::detail::iter_impl<const nlohmann::basic_json<>>;
+template<class T>
+bool checkField(const nlohmann_iter& j);
+
+template<> bool checkField<float>(const nlohmann_iter& j) { return j->is_number_float(); }
+template<> bool checkField<double>(const nlohmann_iter& j) { return j->is_number_float(); }
+template<> bool checkField<uint8_t>(const nlohmann_iter& j) { return j->is_number_unsigned(); }
+
+template<class T>
+tl::optional<T> readFields(const nlohmann::json& note, const std::vector<std::string>& fields)
+{
+    for (const auto& field: fields) {
+        const auto it = note.find(field);
+        if (it != note.end() && checkField<T>(it)) 
+            return it->get<T>();
+    }
+    return tl::nullopt;
+}
+
+
 tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(const nlohmann::json& notes)
 {
     if (!notes.is_array())
@@ -145,33 +167,23 @@ tl::expected<batteur::Sequence, ReadingError> readSequenceFromNoteList(const nlo
     batteur::Sequence returned;
 
     for (auto& note: notes) {
-        const auto timeField = note.find("time");
-        if (timeField == note.end() || !timeField->is_number_float())
-            return tl::make_unexpected(ReadingError::WrongTimeFormat);
-        const auto time = timeField->get<double>();
-        if (time < 0.0)
+        const auto time = readFields<double>(note, { "time", "t" });
+        if (!time || *time < 0.0)
             return tl::make_unexpected(ReadingError::WrongTimeFormat);
 
-        const auto durationField = note.find("duration");
-        if (durationField == note.end() || !durationField->is_number_float())
-            return tl::make_unexpected(ReadingError::WrongNoteDuration);
-        const auto duration = durationField->get<double>();
-        if (duration < 0.0)
+        const auto duration = readFields<double>(note, { "duration", "d" });
+        if (!duration || *duration < 0.0)
             return tl::make_unexpected(ReadingError::WrongNoteDuration);
 
-        const auto numberField = note.find("number");
-        if (numberField == note.end() || !numberField->is_number_integer())
-            return tl::make_unexpected(ReadingError::WrongNoteNumber);
-        const auto number = numberField->get<uint8_t>();
-        if (number > 127)
+        const auto number = readFields<uint8_t>(note, { "number", "n" });
+        if (!number || *number > 127)
             return tl::make_unexpected(ReadingError::WrongNoteNumber);
 
-        const auto valueField = note.find("velocity");
-        if (valueField == note.end() || !valueField->is_number_float())
+        const auto value = readFields<float>(note, { "velocity", "v" });
+        if (!value || *value > 1.0f || value < 0.0f)
             return tl::make_unexpected(ReadingError::WrongNoteValue);
-        const auto value = valueField->get<float>();
 
-        returned.push_back({ time, duration, number, value });
+        returned.push_back({ *time, *duration, *number, *value });
     }
 
     if (returned.empty())
