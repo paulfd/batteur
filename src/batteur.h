@@ -34,10 +34,12 @@ BATTEUR_EXPORTED_API  batteur_beat_t* batteur_load_beat_from_string(const char* 
 BATTEUR_EXPORTED_API  void batteur_free_beat(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  const char* batteur_get_beat_name(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  const char* batteur_get_part_name(batteur_beat_t* beat, int part_index);
+BATTEUR_EXPORTED_API  float batteur_get_beat_tempo(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  int batteur_get_total_parts(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  int batteur_get_total_fills(batteur_beat_t* beat, int part_index);
 BATTEUR_EXPORTED_API  int batteur_get_time_numerator(batteur_beat_t* beat);
 BATTEUR_EXPORTED_API  int batteur_get_time_denominator(batteur_beat_t* beat);
+BATTEUR_EXPORTED_API  double batteur_get_quarters_per_bar(batteur_beat_t* beat);
 
 BATTEUR_EXPORTED_API  batteur_player_t* batteur_new();
 BATTEUR_EXPORTED_API  void batteur_free(batteur_player_t* player);

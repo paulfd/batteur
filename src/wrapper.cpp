@@ -93,6 +93,23 @@ int batteur_get_time_denominator(batteur_beat_t* beat)
     return self->signature.denom;
 }
 
+double batteur_get_quarters_per_bar(batteur_beat_t* beat)
+{
+    if (!beat)
+        return 0;
+
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return self->quartersPerBar;
+}
+
+float batteur_get_beat_tempo(batteur_beat_t* beat)
+{
+    if (!beat)
+        return -1.0f;
+    
+    auto self = reinterpret_cast<batteur::BeatDescription*>(beat);
+    return self->bpm;
+}
 
 
 batteur_player_t* batteur_new()
