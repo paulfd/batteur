@@ -533,7 +533,7 @@ static void
 beat_description_event(batteur_plugin_t* self, const LV2_Atom* atom)
 {
     // If the parameter is different from the current one we send it through
-    if (strncmp(self->beat_file_path, LV2_ATOM_BODY_CONST(atom), strlen(self->beat_file_path)))
+    if (self->beat_file_path[0] == 0 || strncmp(self->beat_file_path, LV2_ATOM_BODY_CONST(atom), strlen(self->beat_file_path)))
         self->worker->schedule_work(self->worker->handle, lv2_atom_total_size(atom), atom);
 }
 
