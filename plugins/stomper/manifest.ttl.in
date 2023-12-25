@@ -5,8 +5,8 @@
 
 <@LV2PLUGIN_URI@>
   a lv2:Plugin ;
-  lv2:binary <Contents/Binary/@PROJECT_NAME@@CMAKE_SHARED_MODULE_SUFFIX@> ;
-  rdfs:seeAlso <@PROJECT_NAME@.ttl>, <modgui.ttl>.
+  lv2:binary <Contents/Binary/@PLUGIN_NAME@@CMAKE_SHARED_MODULE_SUFFIX@> ;
+  rdfs:seeAlso <@PLUGIN_NAME@.ttl>.
 
   <@LV2PLUGIN_URI@#BluesJump>
   a pset:Preset ;

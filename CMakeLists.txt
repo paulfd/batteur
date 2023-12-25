@@ -5,7 +5,7 @@ set (PROJECT_DESCRIPTION "A library to play backing drum parts live.")
 # External configuration CMake scripts
 set (CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include (BatteurConfig)
-option (BATTEUR_LV2                         "Enable LV2 plug-in build [default: OFF]" OFF)
+option (BATTEUR_LV2                         "Enable LV2 plug-in builds [default: OFF]" OFF)
 option (BATTEUR_TESTS                       "Enable tests build [default: OFF]" OFF)
 option (BATTEUR_TOOLS                       "Enable tools build [default: OFF]" OFF)
 option (BATTEUR_DOWNLOAD_DEPENDENCIES_ONLY  "Download all dependencies in the directory specified by CPM_SOURCE_CACHE" OFF)
@@ -20,7 +20,7 @@ if (NOT BATTEUR_DOWNLOAD_DEPENDENCIES_ONLY)
     endif()
 
     if (BATTEUR_LV2)
-    add_subdirectory (lv2)
+    add_subdirectory (plugins)
     endif()
 
     if (BATTEUR_TOOLS)

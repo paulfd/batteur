@@ -81,7 +81,7 @@ typedef struct
     const float* accent_note_p;
     float* time_num_p;
     float* time_denom_p;
-    float* beat_p;
+    float* bar_position_p;
     float* status_p;
     float* part_index_p;
     float* part_total_p;
@@ -141,7 +141,7 @@ typedef struct
     float knob_bpm;
     float host_bpm;
     float speed;
-    float beat;
+    float bar_position;
     int64_t last_main_up;
     int64_t last_main_down;
     double sample_rate;
@@ -225,7 +225,7 @@ connect_port(LV2_Handle instance,
         self->time_denom_p = (float*)data;
         break;
     case BEAT_PORT:
-        self->beat_p = (float*)data;
+        self->bar_position_p = (float*)data;
         break;
     case STATUS_PORT:
         self->status_p = (float*)data;
@@ -312,7 +312,7 @@ instantiate(const LV2_Descriptor* descriptor,
     self->beat_file_path[MAX_PATH_SIZE] = '\0';
     self->accent_pressed = false;
     self->last_main_up = 0;
-    self->beat = 0.0f;
+    self->bar_position = 0.0f;
     self->host_bpm = 120.0f;
     self->knob_bpm = 120.0f;
     self->speed = 1.0f;
@@ -625,7 +625,7 @@ set_tempo(batteur_plugin_t* self, const LV2_Atom_Object* obj)
     }
 
     if (beat && beat->type == self->atom_float_uri) {
-        self->beat = ((LV2_Atom_Float*)beat)->body;
+        self->bar_position = ((LV2_Atom_Float*)beat)->body;
     }
 }
 
@@ -705,7 +705,7 @@ run(LV2_Handle instance, uint32_t sample_count)
     *self->fill_index_p = *self->fill_total_p == 0 ? 0 : batteur_get_fill_index(self->player) + 1;
     *self->time_num_p = batteur_get_time_numerator(self->currentBeat);
     *self->time_denom_p = batteur_get_time_denominator(self->currentBeat);
-    *self->beat_p = batteur_get_bar_position(self->player);
+    *self->bar_position_p = batteur_get_bar_position(self->player);
     *self->status_p = batteur_get_status(self->player);
 }
 

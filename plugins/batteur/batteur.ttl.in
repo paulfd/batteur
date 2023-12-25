@@ -1,0 +1,214 @@
+@prefix atom:    <http://lv2plug.in/ns/ext/atom#> .
+@prefix doap:    <http://usefulinc.com/ns/doap#> .
+@prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+@prefix mod:     <http://moddevices.com/ns/mod#> .
+@prefix lv2:     <http://lv2plug.in/ns/lv2core#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix urid:    <http://lv2plug.in/ns/ext/urid#> .
+@prefix midi:    <http://lv2plug.in/ns/ext/midi#> .
+@prefix bufsize: <http://lv2plug.in/ns/ext/buf-size#> .
+@prefix opts: 	 <http://lv2plug.in/ns/ext/options#> .
+@prefix patch: 	 <http://lv2plug.in/ns/ext/patch#> .
+@prefix state:   <http://lv2plug.in/ns/ext/state#> .
+@prefix time: 	 <http://lv2plug.in/ns/ext/time#> .
+@prefix work:    <http://lv2plug.in/ns/ext/worker#> .
+@prefix pprops:  <http://lv2plug.in/ns/ext/port-props#> .
+@prefix units: 	 <http://lv2plug.in/ns/extensions/units#> .
+
+<@LV2PLUGIN_URI@:beatDescription>
+      a lv2:Parameter ; 
+      rdfs:label "Beat description" ; 
+      rdfs:range atom:Path .
+
+<@LV2PLUGIN_URI@:beatName>
+      a lv2:Parameter ; 
+      rdfs:label "Beat name" ; 
+      rdfs:range atom:String .
+
+<@LV2PLUGIN_URI@:partName>
+      a lv2:Parameter ; 
+      rdfs:label "Part name" ; 
+      rdfs:range atom:String .
+
+<@LV2PLUGIN_URI@>
+	a doap:Project, lv2:Plugin ;
+	doap:name "@PLUGIN_NAME@" ;
+	doap:license <https://spdx.org/licenses/@LV2PLUGIN_SPDX_LICENSE_ID@> ;
+	doap:maintainer [
+		foaf:name     "@LV2PLUGIN_AUTHOR@" ;
+		foaf:homepage <@LV2PLUGIN_URI@> ;
+		foaf:mbox     <mailto:@LV2PLUGIN_EMAIL@> ;
+	] ;
+	rdfs:comment "@LV2PLUGIN_COMMENT@";
+	lv2:minorVersion @LV2PLUGIN_VERSION_MINOR@ ;
+	lv2:microVersion @LV2PLUGIN_VERSION_MICRO@ ;
+	lv2:requiredFeature urid:map, bufsize:boundedBlockLength, work:schedule;
+	lv2:optionalFeature lv2:hardRTCapable, opts:options;
+	lv2:extensionData opts:interface, state:interface, work:interface ;
+	
+	patch:writable 
+        <@LV2PLUGIN_URI@:beatDescription>;
+	patch:readable 
+        <@LV2PLUGIN_URI@:beatDescription>,
+        <@LV2PLUGIN_URI@:partName>,
+        <@LV2PLUGIN_URI@:beatName>;
+	lv2:port [
+		a lv2:InputPort, atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, midi:MidiEvent, time:Position ;
+		lv2:designation lv2:control ;
+		lv2:index 0 ;
+		lv2:symbol "in" ;
+		lv2:name "Input"
+	] , [
+		a lv2:OutputPort, atom:AtomPort ;
+		atom:bufferType atom:Sequence ;
+		atom:supports patch:Message, midi:MidiEvent ;
+		lv2:designation lv2:control ;
+		lv2:index 1 ;
+		lv2:symbol "out" ;
+		lv2:name "Output" ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 2 ;
+		lv2:symbol "main" ;
+		lv2:name "Main Switch" ;
+		lv2:portProperty lv2:toggled, mod:preferMomentaryOnByDefault;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 1 ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 3 ;
+		lv2:symbol "accent" ;
+		lv2:name "Accent Switch" ;
+		lv2:portProperty lv2:toggled, mod:preferMomentaryOnByDefault;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 1 ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 4 ;
+		lv2:symbol "accentnote" ;
+		lv2:name "Accent note" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 49 ;
+		lv2:minimum 0 ;
+		lv2:maximum 127 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 5 ;
+		lv2:symbol "timenum" ;
+		lv2:name "Time numerator" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 6 ;
+		lv2:symbol "timedenom" ;
+		lv2:name "Time denominator" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 7 ;
+		lv2:symbol "barpos" ;
+		lv2:name "Bar position" ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 8 ;
+		lv2:symbol "status" ;
+		lv2:name "Status" ;
+		lv2:portProperty lv2:integer ;
+		lv2:portProperty lv2:enumeration ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 5 ;
+		lv2:scalePoint [ 
+			rdfs:label "Stopped";
+			rdf:value 0
+		] ;
+		lv2:scalePoint [ 
+			rdfs:label "Intro";
+			rdf:value 1
+		] ;
+		lv2:scalePoint [ 
+			rdfs:label "Playing";
+			rdf:value 2
+		] ;
+		lv2:scalePoint [ 
+			rdfs:label "Fill-in";
+			rdf:value 3
+		] ;
+		lv2:scalePoint [ 
+			rdfs:label "Transition";
+			rdf:value 4
+		] ;
+		lv2:scalePoint [ 
+			rdfs:label "Ending";
+			rdf:value 5
+		] ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 9 ;
+		lv2:symbol "partindex" ;
+		lv2:name "Part index" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 10 ;
+		lv2:symbol "parttotal" ;
+		lv2:name "Number of parts" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 11 ;
+		lv2:symbol "fillindex" ;
+		lv2:name "Fill index" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:OutputPort, lv2:ControlPort ;
+		lv2:index 12 ;
+		lv2:symbol "filltotal" ;
+		lv2:name "Number of fills" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 65535 ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 13 ;
+		lv2:symbol "tempo" ;
+		lv2:name "Tempo" ;
+		lv2:portProperty lv2:integer ;
+		lv2:default 120 ;
+		lv2:minimum 20 ;
+		lv2:maximum 300 ;
+		units:unit units:bpm ;
+    ] , [
+		a lv2:InputPort, lv2:ControlPort ;
+		lv2:index 14 ;
+		lv2:symbol "temposync" ;
+		lv2:name "Use host tempo" ;
+		lv2:portProperty lv2:toggled ;
+		lv2:default 0 ;
+		lv2:minimum 0 ;
+		lv2:maximum 1 ;
+    ] .
