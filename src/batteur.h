@@ -55,6 +55,7 @@ BATTEUR_EXPORTED_API  void batteur_next(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_stop(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_start(batteur_player_t* player);
 BATTEUR_EXPORTED_API  void batteur_all_off(batteur_player_t* player);
+BATTEUR_EXPORTED_API  void batteur_skip_intro(batteur_player_t* player, bool skip);
 BATTEUR_EXPORTED_API  bool batteur_playing(batteur_player_t* player);
 BATTEUR_EXPORTED_API  batteur_status_t batteur_get_status(batteur_player_t* player);
 BATTEUR_EXPORTED_API  double batteur_get_bar_position(batteur_player_t* player);

@@ -215,6 +215,15 @@ void batteur_all_off(batteur_player_t* player)
     self->allOff();
 }
 
+void batteur_skip_intro(batteur_player_t* player, bool skip)
+{
+    if (!player)
+        return;
+    
+    auto self = reinterpret_cast<batteur::Player*>(player);
+    self->skipIntro(skip);
+}
+
 bool batteur_playing(batteur_player_t* player)
 {
     if (!player)

@@ -56,7 +56,7 @@ bool Player::next()
 
 void Player::_start()
 {
-    if (currentBeat->intro) {
+    if (currentBeat->intro && !_skipIntro) {
         queuedSequences.push_back(&*currentBeat->intro);
         queuedSequences.push_back(&currentBeat->parts[partIndex].mainLoop);
         state = State::Intro;
@@ -432,5 +432,9 @@ double Player::getSequencePosition() const noexcept
     return this->position;
 }
 
+void Player::skipIntro(bool skip) noexcept
+{
+    this->_skipIntro = skip;
+}
 
 }

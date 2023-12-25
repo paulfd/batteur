@@ -34,6 +34,7 @@ public:
     int getFillIndex() const noexcept;
     void suspendCallback() noexcept;
     void resumeCallback() noexcept;
+    void skipIntro(bool skip) noexcept;
 private:
     struct NoteEvents {
         int delay;
@@ -67,6 +68,7 @@ private:
     double sampleRate { 48e3 };
     int fillIndex { 0 };
     int partIndex { 0 };
+    bool _skipIntro { false };
     std::mutex callbackGuard;
 
     int quarterToSamples(double quarterFraction) const noexcept;
