@@ -76,5 +76,18 @@ BATTEUR_STATIC  "Enable the static library build [default: ON]
 
 Enabling the development tools requires the `fmt` library.
 
+## CI
 
+GitHub Actions builds the libraries, LV2 plug-in, tools, and tests on native x86-64
+and ARM64 runners in Debian Bookworm containers. The ARM64 job targets the
+ARMv8-A baseline (Raspberry Pi 3/4/5 in 64-bit mode), with a Debian userspace
+similar to Raspberry Pi OS 64-bit. It does not test 32-bit Raspberry Pi OS.
 
+To run the same checks locally on Debian Bookworm (install `build-essential`,
+`cmake`, and `libfmt-dev` first):
+
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBATTEUR_TESTS=ON -DBATTEUR_LV2=ON -DBATTEUR_TOOLS=ON
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
+```

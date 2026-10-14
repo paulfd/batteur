@@ -57,7 +57,8 @@ if (BATTEUR_SHARED)
 endif()
 
 if (BATTEUR_TESTS)
-add_subdirectory (tests)
+    enable_testing()
+    add_subdirectory (tests)
 endif()
 
 if (BATTEUR_LV2)
