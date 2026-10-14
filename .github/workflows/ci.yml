@@ -31,7 +31,7 @@ jobs:
           test "$(dpkg --print-architecture)" = "${{ matrix.arch }}"
           uname -m
           apt-get update
-          apt-get install -y --no-install-recommends build-essential cmake git libfmt-dev
+          apt-get install -y --no-install-recommends build-essential cmake git ca-certificates libfmt-dev
       - uses: actions/checkout@v4
       - name: Configure (libraries, LV2, tools, tests)
         run: |
