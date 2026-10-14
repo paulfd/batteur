@@ -156,7 +156,7 @@ protected:
     static T do_pop_atomic(std::atomic<T>& q_element) noexcept {
         if(Derived::spsc_) {
             for(;;) {
-                T element = q_element.load(X);
+                T element = q_element.load(A);
                 if(ATOMIC_QUEUE_LIKELY(element != NIL)) {
                     q_element.store(NIL, R);
                     return element;
@@ -302,7 +302,8 @@ public:
         static_cast<Derived&>(*this).do_push(std::forward<T>(element), head);
     }
 
-    Derived pop() noexcept {
+    template<class D = Derived>
+    typename D::value_type pop() noexcept {
         unsigned tail;
         if(Derived::spsc_) {
             tail = tail_.load(X);
@@ -391,13 +392,13 @@ class AtomicQueue2 : public AtomicQueueCommon<AtomicQueue2<T, SIZE, MINIMIZE_CON
 
     T do_pop(unsigned tail) noexcept {
         unsigned index = details::remap_index<SHUFFLE_BITS>(tail % size_);
-        return Base::template do_pop_any(states_[index], elements_[index]);
+        return Base::do_pop_any(states_[index], elements_[index]);
     }
 
     template<class U>
     void do_push(U&& element, unsigned head) noexcept {
         unsigned index = details::remap_index<SHUFFLE_BITS>(head % size_);
-        Base::template do_push_any(std::forward<U>(element), states_[index], elements_[index]);
+        Base::do_push_any(std::forward<U>(element), states_[index], elements_[index]);
     }
 
 public:
@@ -519,13 +520,13 @@ class AtomicQueueB2 : public AtomicQueueCommon<AtomicQueueB2<T, A, MAXIMIZE_THRO
 
     T do_pop(unsigned tail) noexcept {
         unsigned index = details::remap_index<SHUFFLE_BITS>(tail & (size_ - 1));
-        return Base::template do_pop_any(states_[index], elements_[index]);
+        return Base::do_pop_any(states_[index], elements_[index]);
     }
 
     template<class U>
     void do_push(U&& element, unsigned head) noexcept {
         unsigned index = details::remap_index<SHUFFLE_BITS>(head & (size_ - 1));
-        Base::template do_push_any(std::forward<U>(element), states_[index], elements_[index]);
+        Base::do_push_any(std::forward<U>(element), states_[index], elements_[index]);
     }
 
 public:
