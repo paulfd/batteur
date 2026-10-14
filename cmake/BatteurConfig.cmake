@@ -27,7 +27,9 @@ endif()
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wall)
     add_compile_options(-Wextra)
-    add_compile_options(-ffast-math)
+    # No -ffast-math: batteur emits MIDI, not audio -- there is no DSP inner loop to
+    # vectorise and no denormals to flush. It also implies -ffinite-math-only, which
+    # undermines the infinity/isfinite number handling in json.hpp.
     add_compile_options(-fno-omit-frame-pointer) # For debugging purposes
     if (BATTEUR_SYSTEM_PROCESSOR MATCHES "^(i.86|x86_64)$")
         add_compile_options(-msse2)
