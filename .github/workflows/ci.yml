@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Debian Bookworm (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            cpu_flags: ''
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            cpu_flags: -march=armv8-a
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    # Raspberry Pi OS 64-bit is Debian-based. Run on native ARM64, not QEMU.
+    container: debian:bookworm
+    steps:
+      - name: Verify native architecture and install dependencies
+        run: |
+          test "$(dpkg --print-architecture)" = "${{ matrix.arch }}"
+          uname -m
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential cmake git ca-certificates libfmt-dev
+      - uses: actions/checkout@v4
+      - name: Configure (libraries, LV2, tools, tests)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_FLAGS="${{ matrix.cpu_flags }}" -DCMAKE_CXX_FLAGS="${{ matrix.cpu_flags }}" \
+            -DBATTEUR_TESTS=ON -DBATTEUR_LV2=ON -DBATTEUR_TOOLS=ON
+      - name: Build
+        run: cmake --build build --parallel 2
+      - name: Test
+        run: ctest --test-dir build --output-on-failure

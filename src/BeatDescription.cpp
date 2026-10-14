@@ -70,7 +70,7 @@ void alignSequenceEnd(Sequence& sequence, double numBars, double quartersPerBar)
             std::find_if(
                 sequence.begin(),
                 sequence.end(),
-                [shift](const Note& note) { return note.timestamp >= shift; }));
+                [shift](const Note& note) { return note.timestamp >= -shift; }));
     }
 
     for (auto& note : sequence)
@@ -82,12 +82,12 @@ std::unique_ptr<BeatDescription> buildDescriptionFromJson(const fs::path& virtua
     auto beat = std::unique_ptr<BeatDescription>(new BeatDescription());
 
     // Minimal file
-    const auto title = json["name"];
-    if (title.is_null()) {
+    const auto title = json.find("name");
+    if (title == json.end() || title->is_null()) {
         error = BeatDescriptionError::NoFilename;
         return {};
     }
-    beat->name = title;
+    beat->name = *title;
 
     const auto group = json.find("group");
     if (group != json.end())
@@ -113,13 +113,14 @@ std::unique_ptr<BeatDescription> buildDescriptionFromJson(const fs::path& virtua
         beat->signature.num = static_cast<int>(beat->quartersPerBar);
     } else if (sig != json.end() && sig->is_array() && sig->size() == 2) {
         const auto s = *sig;
-        if (s[0].is_number_unsigned())
+        // A signature is one value: don't combine a valid half with a default
+        // (or accept zero as a denominator).
+        if (s[0].is_number_unsigned() && s[1].is_number_unsigned() &&
+            s[0].get<unsigned>() > 0 && s[1].get<unsigned>() > 0) {
             beat->signature.num = s[0].get<int>();
-
-        if (s[1].is_number_unsigned())
             beat->signature.denom = s[1].get<int>();
-
-        beat->quartersPerBar = beat->signature.num * 4.0 / beat->signature.denom;
+            beat->quartersPerBar = beat->signature.num * 4.0 / beat->signature.denom;
+        }
     }
 
     const auto rootDirectory = virtualFile.parent_path();
@@ -132,16 +133,22 @@ std::unique_ptr<BeatDescription> buildDescriptionFromJson(const fs::path& virtua
 
     for (auto& part : *parts) {
         Part newPart;
-        newPart.name = part["name"];
+        const auto partName = part.find("name");
+        if (partName != part.end())
+            newPart.name = *partName;
+
         auto mainLoop = readSequenceByName(part, rootDirectory, "sequence");
         if (!mainLoop)
             continue;
 
         newPart.mainLoop = std::move(*mainLoop);
 
-        for (auto& fill : part["fills"]) {
-            if (auto seq = readSequence(fill, rootDirectory)) {
-                newPart.fills.push_back(std::move(*seq));
+        const auto fills = part.find("fills");
+        if (fills != part.end()) {
+            for (auto& fill : *fills) {
+                if (auto seq = readSequence(fill, rootDirectory)) {
+                    newPart.fills.push_back(std::move(*seq));
+                }
             }
         }
 
