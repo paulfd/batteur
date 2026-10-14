@@ -1,348 +1,295 @@
 #include "BeatDescription.h"
 #include "catch.hpp"
+#include <sstream>
+#include <string>
+
 using namespace Catch::literals;
 using namespace batteur;
 
-TEST_CASE("[Files] Empty filename")
+namespace {
+
+fs::path testFile(const char* name)
 {
-    std::error_code ec;
-    auto beat = BeatDescription::buildFromFile("", ec);
-    REQUIRE( !beat );
+    return fs::current_path() / "tests/files" / name;
 }
 
-TEST_CASE("[Files] Nonexistent filename")
+/// A single note, enough for a sequence to be read back successfully
+const char* oneNote = R"({ "notes": [
+    { "time": 0.0, "duration": 0.25, "number": 36, "velocity": 0.5 } ] })";
+
+/// The smallest description that loads, plus whatever extra keys are needed.
+/// `extraKeys` is appended as written, so it starts with a comma.
+std::unique_ptr<BeatDescription> buildWith(const std::string& extraKeys = "")
 {
     std::error_code ec;
-    auto beat = BeatDescription::buildFromFile("fake_file.json", ec);
-    REQUIRE( !beat );
+    const std::string text = std::string(R"({ "name": "Test", "parts": [ { "name": "Only", "sequence": )")
+        + oneNote + " } ]" + extraKeys + " }";
+    return BeatDescription::buildFromString("virtual.json", text, ec);
+}
+
+}
+
+TEST_CASE("[Files] Files that cannot be opened")
+{
+    const auto path = GENERATE(as<std::string> {}, "", "fake_file.json");
+    CAPTURE( path );
+
+    std::error_code ec;
+    REQUIRE( !BeatDescription::buildFromFile(path, ec) );
     REQUIRE( ec == BeatDescriptionError::NonexistentFile );
 }
 
-TEST_CASE("[Files] Existing file")
+TEST_CASE("[Files] The whole description is read back")
 {
     std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/shuffle.json", ec);
+    auto beat = BeatDescription::buildFromFile(testFile("shuffle.json"), ec);
     REQUIRE( beat );
+    REQUIRE( !ec );
+    REQUIRE( beat->name == "Slow shuffle" );
+    REQUIRE( beat->group == "Blues" );
     REQUIRE( beat->bpm == 78 );
     REQUIRE( beat->quartersPerBar == 4.0 );
     REQUIRE( beat->intro );
+    REQUIRE( !beat->intro->empty() );
     REQUIRE( beat->parts.size() == 2 );
     REQUIRE( beat->parts[0].name == "Snare" );
     REQUIRE( beat->parts[1].name == "Ride" );
     REQUIRE( beat->parts[0].fills.size() == 2 );
     REQUIRE( beat->parts[1].fills.size() == 1 );
+    REQUIRE( beat->parts[0].transition );
+    REQUIRE( !beat->parts[0].mainLoop.empty() );
+    for (const auto& fill : beat->parts[0].fills)
+        REQUIRE( !fill.empty() );
 }
 
-TEST_CASE("[Files] Time signature 1")
+TEST_CASE("[Files] Reading from a string matches reading from the file")
+{
+    // buildFromString resolves the relative MIDI filenames against the
+    // virtual path it is handed, so both paths must agree on the same text.
+    const auto path = testFile("shuffle.json");
+    fs::ifstream stream { path };
+    std::stringstream buffer;
+    buffer << stream.rdbuf();
+
+    std::error_code fromStringError;
+    std::error_code fromFileError;
+    auto fromString = BeatDescription::buildFromString(path, buffer.str(), fromStringError);
+    auto fromFile = BeatDescription::buildFromFile(path, fromFileError);
+    REQUIRE( fromString );
+    REQUIRE( fromFile );
+
+    REQUIRE( fromString->name == fromFile->name );
+    REQUIRE( fromString->bpm == fromFile->bpm );
+    REQUIRE( fromString->quartersPerBar == fromFile->quartersPerBar );
+    REQUIRE( fromString->parts.size() == fromFile->parts.size() );
+    for (size_t i = 0; i < fromFile->parts.size(); ++i) {
+        REQUIRE( fromString->parts[i].name == fromFile->parts[i].name );
+        REQUIRE( fromString->parts[i].mainLoop.size() == fromFile->parts[i].mainLoop.size() );
+        REQUIRE( fromString->parts[i].fills.size() == fromFile->parts[i].fills.size() );
+    }
+}
+
+TEST_CASE("[Files] Sequences can be spelled out as note lists")
 {
     std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig1.json", ec);
+    const std::string text = std::string(R"({
+        "name": "Inline",
+        "bpm": 120.0,
+        "intro": )") + oneNote + R"(,
+        "ending": )" + oneNote + R"(,
+        "parts": [
+            { "name": "Hat", "sequence": )" + oneNote + R"(,
+              "fills": [ )" + oneNote + ", " + oneNote + R"( ],
+              "transition": )" + oneNote + R"( },
+            { "name": "Ride", "sequence": )" + oneNote + R"(,
+              "fills": [ )" + oneNote + R"( ],
+              "transition": )" + oneNote + R"( }
+        ]
+    })";
+
+    auto beat = BeatDescription::buildFromString("virtual.json", text, ec);
+    REQUIRE( beat );
+    REQUIRE( beat->bpm == 120 );
+    REQUIRE( beat->intro );
+    REQUIRE( beat->ending );
+    REQUIRE( beat->parts.size() == 2 );
+    REQUIRE( beat->parts[0].name == "Hat" );
+    REQUIRE( beat->parts[1].name == "Ride" );
+    REQUIRE( beat->parts[0].fills.size() == 2 );
+    REQUIRE( beat->parts[1].fills.size() == 1 );
+    REQUIRE( beat->parts[0].transition );
+    REQUIRE( beat->parts[1].transition );
+}
+
+TEST_CASE("[Files] Time signatures")
+{
+    std::string file;
+    double quartersPerBar;
+    int num;
+    int denom;
+    std::tie(file, quartersPerBar, num, denom) = GENERATE(table<std::string, double, int, int>({
+        { "sig1.json", 4.0, 4, 4 },
+        { "sig2.json", 6.0, 12, 8 },
+        { "sig3.json", 3.5, 7, 8 },
+    }));
+
+    CAPTURE( file );
+    std::error_code ec;
+    auto beat = BeatDescription::buildFromFile(testFile(file.c_str()), ec);
+    REQUIRE( beat );
+    REQUIRE( beat->quartersPerBar == Approx(quartersPerBar) );
+    REQUIRE( beat->signature.num == num );
+    REQUIRE( beat->signature.denom == denom );
+}
+
+TEST_CASE("[Files] Descriptions without a usable name are rejected")
+{
+    std::error_code ec;
+    const auto text = GENERATE(as<std::string> {},
+        R"({ "name": null, "parts": [] })",
+        "", // not even JSON
+        "{",
+        "[1, 2, 3]", // JSON, but not an object
+        "{}");
+
+    CAPTURE( text );
+    REQUIRE( !BeatDescription::buildFromString("virtual.json", text, ec) );
+    REQUIRE( ec == BeatDescriptionError::NoFilename );
+}
+
+TEST_CASE("[Files] Descriptions without usable parts are rejected")
+{
+    std::error_code ec;
+    const auto text = GENERATE(as<std::string> {},
+        R"({ "name": "Test" })", // no parts key
+        R"({ "name": "Test", "parts": [] })",
+        R"({ "name": "Test", "parts": { "name": "Nope" } })", // not an array
+        R"({ "name": "Test", "parts": [ { "name": "Nope", "sequence": {} } ] })");
+
+    CAPTURE( text );
+    REQUIRE( !BeatDescription::buildFromString("virtual.json", text, ec) );
+    REQUIRE( ec == BeatDescriptionError::NoParts );
+}
+
+TEST_CASE("[Files] Parts that cannot be read are skipped")
+{
+    std::error_code ec;
+    const std::string text = std::string(R"({
+        "name": "Test",
+        "parts": [
+            { "name": "Broken", "sequence": { "filename": "nope.mid" } },
+            { "name": "Good", "sequence": )") + oneNote + R"( }
+        ]
+    })";
+
+    auto beat = BeatDescription::buildFromString("virtual.json", text, ec);
+    REQUIRE( beat );
+    REQUIRE( beat->parts.size() == 1 );
+    REQUIRE( beat->parts[0].name == "Good" );
+}
+
+TEST_CASE("[Files] Defaults")
+{
+    auto beat = buildWith();
+    REQUIRE( beat );
+    REQUIRE( beat->group.empty() );
+    REQUIRE( beat->bpm == 120.0_a );
+    REQUIRE( beat->quartersPerBar == 4.0 );
+    REQUIRE( beat->signature.num == 4 );
+    REQUIRE( beat->signature.denom == 4 );
+    REQUIRE( !beat->intro );
+    REQUIRE( !beat->ending );
+
+    SECTION("Parts may omit their optional keys")
+    {
+        std::error_code ec;
+        const std::string text = std::string(R"({ "name": "Test", "parts": [ { "sequence": )")
+            + oneNote + " } ] }";
+        auto anonymous = BeatDescription::buildFromString("virtual.json", text, ec);
+        REQUIRE( anonymous );
+        REQUIRE( anonymous->parts.size() == 1 );
+        REQUIRE( anonymous->parts[0].name.empty() );
+        REQUIRE( anonymous->parts[0].fills.empty() );
+        REQUIRE( !anonymous->parts[0].transition );
+    }
+}
+
+TEST_CASE("[Files] Malformed meters fall back to 4/4")
+{
+    // A meter is one value: a valid half must never be combined with a
+    // default, and a zero denominator must not be divided by.
+    const auto extra = GENERATE(as<std::string> {},
+        R"(, "quarters_per_bar": 0)",
+        R"(, "quarters_per_bar": -3)",
+        R"(, "quarters_per_bar": "three")",
+        R"(, "signature": [7])", // too few entries
+        R"(, "signature": "7/8")", // not an array
+        R"(, "signature": [7.5, 8])", // non integer entries
+        R"(, "signature": [7, 0])"); // zero denominator
+
+    CAPTURE( extra );
+    auto beat = buildWith(extra);
     REQUIRE( beat );
     REQUIRE( beat->quartersPerBar == 4.0 );
     REQUIRE( beat->signature.num == 4 );
     REQUIRE( beat->signature.denom == 4 );
 }
 
-TEST_CASE("[Files] Time signature 2")
+TEST_CASE("[Files] Valid meters are read back")
 {
-    std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig2.json", ec);
-    REQUIRE( beat );
-    REQUIRE( beat->quartersPerBar == 6.0 );
-    REQUIRE( beat->signature.num == 12 );
-    REQUIRE( beat->signature.denom == 8 );
-}
-
-TEST_CASE("[Files] Time signature 3")
-{
-    std::error_code ec;
-    auto beat = BeatDescription::buildFromFile(fs::current_path() / "tests/files/sig3.json", ec);
-    REQUIRE( beat );
-    REQUIRE( beat->quartersPerBar == 3.5 );
-    REQUIRE( beat->signature.num == 7 );
-    REQUIRE( beat->signature.denom == 8 );
-}
-
-TEST_CASE("[Files] Read from string")
-{
-    std::error_code ec;
-    std::string file = R"(
-        {
-            "name": "Slow shuffle",
-            "group": "Blues",
-            "bpm" : 78,
-            "quarters_per_bar": 4,
-            "intro": { "filename" : "midi/shuffle_intro.mid" },
-            "parts": [
-                {
-                    "name": "Snare",
-                    "sequence" : { "filename" : "midi/shuffle_part.mid" },
-                    "fills": [
-                        { "filename" : "midi/snare_fill.mid" },
-                        { "filename" : "midi/snare_fill.mid" }
-                    ],
-                    "transition": { "filename" : "midi/snare_fill.mid" }
-                },
-                {
-                    "name": "Ride",
-                    "sequence" : { "filename" : "midi/shuffle_part_ride.mid" },
-                    "fills": [
-                        { "filename" : "midi/snare_fill.mid" }
-                    ],
-                    "transition": { "filename" : "midi/snare_fill.mid" }
-                }
-            ]
-        }
-    )";
-    auto beat = BeatDescription::buildFromString(fs::current_path() / "tests/files/shuffle.json", file, ec);
-    REQUIRE( beat );
-    REQUIRE( beat->bpm == 78 );
-    REQUIRE( beat->quartersPerBar == 4.0 );
-    REQUIRE( beat->intro );
-    REQUIRE( beat->parts.size() == 2 );
-    REQUIRE( beat->parts[0].name == "Snare" );
-    REQUIRE( beat->parts[1].name == "Ride" );
-    REQUIRE( beat->parts[0].fills.size() == 2 );
-    REQUIRE( beat->parts[1].fills.size() == 1 );
-}
-
-TEST_CASE("[Files] Read from string 2") {
-    std::error_code ec;
-    std::string file = R"(
-{
-  "name": "Shuffle",
-  "group": "Blues",
-  "bpm": 120.0,
-  "quarters_per_bar": 4.0,
-  "intro": {
-    "notes": [
-      { "time": 0.0073, "duration": 0.1250, "number":  42, "velocity": 0.897638 },
-      { "time": 1.0052, "duration": 0.1250, "number":  42, "velocity": 0.866142 },
-      { "time": 1.9979, "duration": 0.1250, "number":  42, "velocity": 0.866142 },
-      { "time": 2.6240, "duration": 0.3750, "number":  38, "velocity": 0.574803 },
-      { "time": 3.0083, "duration": 0.6156, "number":  38, "velocity": 0.818898 },
-      { "time": 3.6240, "duration": 0.3750, "number":  38, "velocity": 0.811024 },
-      { "time": 3.9937, "duration": 0.6250, "number":  49, "velocity": 0.763780 },
-      { "time": 3.9948, "duration": 0.6250, "number":  36, "velocity": 0.842520 }
-    ]
-  },
-  "ending": {
-    "notes": [
-      { "time": 0.0000, "duration": 0.0417, "number":  49, "velocity": 0.740157 },
-      { "time": 0.0052, "duration": 0.0417, "number":  36, "velocity": 0.606299 },
-      { "time": 0.0104, "duration": 0.0417, "number":  38, "velocity": 0.763780 },
-      { "time": 0.6573, "duration": 0.0417, "number":  38, "velocity": 0.795276 },
-      { "time": 1.0000, "duration": 0.0417, "number":  49, "velocity": 0.787402 },
-      { "time": 1.0073, "duration": 0.0417, "number":  38, "velocity": 0.897638 },
-      { "time": 1.6646, "duration": 0.0417, "number":  57, "velocity": 0.755906 },
-      { "time": 1.6698, "duration": 0.0417, "number":  36, "velocity": 0.708661 },
-      { "time": 1.6750, "duration": 0.0417, "number":  38, "velocity": 0.881890 },
-      { "time": 2.6677, "duration": 0.0417, "number":  38, "velocity": 0.803150 },
-      { "time": 2.9990, "duration": 0.0417, "number":  38, "velocity": 0.826772 },
-      { "time": 3.3198, "duration": 0.0417, "number":  38, "velocity": 0.787402 },
-      { "time": 3.6708, "duration": 0.0417, "number":  38, "velocity": 0.929134 },
-      { "time": 3.9760, "duration": 0.1250, "number":  55, "velocity": 0.700787 },
-      { "time": 4.0021, "duration": 0.1250, "number":  57, "velocity": 0.826772 }
-    ]
-  },
-  "parts": [
+    SECTION("From quarters_per_bar, which implies a denominator of four")
     {
-      "name": "Hat",
-      "sequence": {
-        "notes": [
-          { "time": 0.0000, "duration": 0.3125, "number":  36, "velocity": 0.755906 },
-          { "time": 0.0000, "duration": 0.6208, "number":  42, "velocity": 0.708661 },
-          { "time": 0.6615, "duration": 0.3333, "number":  38, "velocity": 0.291339 },
-          { "time": 0.6677, "duration": 0.3313, "number":  42, "velocity": 0.527559 },
-          { "time": 0.9990, "duration": 0.6250, "number":  42, "velocity": 0.708661 },
-          { "time": 1.0094, "duration": 0.6250, "number":  38, "velocity": 0.755906 },
-          { "time": 1.6625, "duration": 0.1875, "number":  36, "velocity": 0.716535 },
-          { "time": 1.6635, "duration": 0.3333, "number":  42, "velocity": 0.527559 },
-          { "time": 1.6740, "duration": 0.3750, "number":  38, "velocity": 0.354331 },
-          { "time": 1.9948, "duration": 0.6250, "number":  36, "velocity": 0.779528 },
-          { "time": 2.0083, "duration": 0.6125, "number":  42, "velocity": 0.716535 },
-          { "time": 2.6656, "duration": 0.3333, "number":  42, "velocity": 0.519685 },
-          { "time": 2.6719, "duration": 0.3125, "number":  38, "velocity": 0.291339 },
-          { "time": 2.9844, "duration": 0.6250, "number":  38, "velocity": 0.763780 },
-          { "time": 3.0021, "duration": 0.6208, "number":  42, "velocity": 0.700787 },
-          { "time": 3.6656, "duration": 0.3292, "number":  36, "velocity": 0.755906 },
-          { "time": 3.6667, "duration": 0.3750, "number":  38, "velocity": 0.354331 },
-          { "time": 3.6750, "duration": 0.3292, "number":  42, "velocity": 0.527559 },
-          { "time": 3.9948, "duration": 0.6250, "number":  36, "velocity": 0.755906 },
-          { "time": 4.0042, "duration": 0.6240, "number":  42, "velocity": 0.708661 },
-          { "time": 4.6615, "duration": 0.3333, "number":  42, "velocity": 0.511811 },
-          { "time": 4.6646, "duration": 0.3333, "number":  38, "velocity": 0.283465 },
-          { "time": 4.9948, "duration": 0.6208, "number":  42, "velocity": 0.692913 },
-          { "time": 5.0000, "duration": 0.6240, "number":  38, "velocity": 0.755906 },
-          { "time": 5.6604, "duration": 0.3750, "number":  38, "velocity": 0.362205 },
-          { "time": 5.6615, "duration": 0.3333, "number":  42, "velocity": 0.519685 },
-          { "time": 5.6677, "duration": 0.3333, "number":  36, "velocity": 0.724409 },
-          { "time": 5.9990, "duration": 0.6250, "number":  42, "velocity": 0.708661 },
-          { "time": 6.0052, "duration": 0.6250, "number":  36, "velocity": 0.732283 },
-          { "time": 6.6573, "duration": 0.3333, "number":  38, "velocity": 0.283465 },
-          { "time": 6.6615, "duration": 0.3333, "number":  42, "velocity": 0.527559 },
-          { "time": 6.6615, "duration": 0.3750, "number":  36, "velocity": 0.740157 },
-          { "time": 6.9990, "duration": 0.6250, "number":  38, "velocity": 0.748031 },
-          { "time": 7.0010, "duration": 0.6240, "number":  42, "velocity": 0.700787 },
-          { "time": 7.6250, "duration": 0.3750, "number":  38, "velocity": 0.370079 },
-          { "time": 7.6250, "duration": 0.3750, "number":  36, "velocity": 0.771654 },
-          { "time": 7.6250, "duration": 0.3750, "number":  42, "velocity": 0.519685 }
-        ]
-      },
-      "fills": [
-        {
-          "notes": [
-            { "time": 2.6615, "duration": 0.0417, "number":  38, "velocity": 0.417323 },
-            { "time": 2.8375, "duration": 0.0417, "number":  38, "velocity": 0.401575 },
-            { "time": 2.9969, "duration": 0.0417, "number":  36, "velocity": 0.574803 },
-            { "time": 3.0010, "duration": 0.0417, "number":  38, "velocity": 0.881890 },
-            { "time": 3.0042, "duration": 0.0417, "number":  44, "velocity": 0.913386 },
-            { "time": 3.6708, "duration": 0.0417, "number":  38, "velocity": 0.881890 },
-            { "time": 4.0000, "duration": 0.1250, "number":  36, "velocity": 0.763780 },
-            { "time": 4.0000, "duration": 0.1250, "number":  49, "velocity": 0.992126 }
-          ]
-        },
-        {
-          "notes": [
-            { "time": 2.6833, "duration": 0.0417, "number":  38, "velocity": 0.692913 },
-            { "time": 2.9917, "duration": 0.0417, "number":  36, "velocity": 0.700787 },
-            { "time": 3.0000, "duration": 0.1250, "number":  44, "velocity": 0.889764 },
-            { "time": 3.0031, "duration": 0.0417, "number":  38, "velocity": 0.826772 },
-            { "time": 3.3323, "duration": 0.0417, "number":  38, "velocity": 0.779528 },
-            { "time": 3.6719, "duration": 0.0417, "number":  38, "velocity": 0.850394 },
-            { "time": 3.9917, "duration": 0.1250, "number":  36, "velocity": 0.866142 },
-            { "time": 4.0052, "duration": 0.1250, "number":  49, "velocity": 0.929134 }
-          ]
-        }
-      ],
-      "transition": {
-        "notes": [
-          { "time": 1.0021, "duration": 0.0417, "number":  38, "velocity": 0.795276 },
-          { "time": 1.0021, "duration": 0.1250, "number":  36, "velocity": 0.724409 },
-          { "time": 1.3219, "duration": 0.0417, "number":  38, "velocity": 0.795276 },
-          { "time": 1.6417, "duration": 0.0417, "number":  38, "velocity": 0.866142 },
-          { "time": 2.0000, "duration": 0.0417, "number":  45, "velocity": 0.700787 },
-          { "time": 2.0031, "duration": 0.0417, "number":  36, "velocity": 0.574803 },
-          { "time": 2.3302, "duration": 0.0417, "number":  45, "velocity": 0.622047 },
-          { "time": 2.6656, "duration": 0.0417, "number":  45, "velocity": 0.708661 },
-          { "time": 2.9937, "duration": 0.0417, "number":  36, "velocity": 0.645669 },
-          { "time": 3.0031, "duration": 0.0417, "number":  43, "velocity": 0.716535 },
-          { "time": 3.3062, "duration": 0.0417, "number":  43, "velocity": 0.700787 },
-          { "time": 3.6448, "duration": 0.0417, "number":  43, "velocity": 0.748031 },
-          { "time": 3.9906, "duration": 0.1250, "number":  36, "velocity": 0.834646 },
-          { "time": 4.0000, "duration": 0.1250, "number":  56, "velocity": 0.771654 },
-          { "time": 4.0031, "duration": 0.1250, "number":  57, "velocity": 0.779528 }
-        ]
-      }
-    },
-    {
-      "name": "Ride",
-      "sequence": {
-        "notes": [
-          { "time": 0.0000, "duration": 0.3125, "number":  36, "velocity": 0.755906 },
-          { "time": 0.0010, "duration": 0.6208, "number":  51, "velocity": 0.708661 },
-          { "time": 0.6573, "duration": 0.3333, "number":  38, "velocity": 0.291339 },
-          { "time": 0.6687, "duration": 0.3302, "number":  51, "velocity": 0.527559 },
-          { "time": 0.9927, "duration": 0.6250, "number":  44, "velocity": 0.874016 },
-          { "time": 0.9948, "duration": 0.6250, "number":  38, "velocity": 0.755906 },
-          { "time": 0.9990, "duration": 0.6250, "number":  51, "velocity": 0.708661 },
-          { "time": 1.6656, "duration": 0.3750, "number":  38, "velocity": 0.354331 },
-          { "time": 1.6677, "duration": 0.3302, "number":  51, "velocity": 0.527559 },
-          { "time": 1.6688, "duration": 0.1875, "number":  36, "velocity": 0.716535 },
-          { "time": 1.9979, "duration": 0.6125, "number":  51, "velocity": 0.716535 },
-          { "time": 1.9990, "duration": 0.6250, "number":  36, "velocity": 0.779528 },
-          { "time": 2.6573, "duration": 0.3333, "number":  38, "velocity": 0.291339 },
-          { "time": 2.6708, "duration": 0.3292, "number":  51, "velocity": 0.519685 },
-          { "time": 2.9896, "duration": 0.3750, "number":  44, "velocity": 0.850394 },
-          { "time": 3.0000, "duration": 0.6208, "number":  51, "velocity": 0.700787 },
-          { "time": 3.0063, "duration": 0.6250, "number":  38, "velocity": 0.763780 },
-          { "time": 3.6573, "duration": 0.3750, "number":  38, "velocity": 0.354331 },
-          { "time": 3.6646, "duration": 0.3333, "number":  36, "velocity": 0.755906 },
-          { "time": 3.6771, "duration": 0.3219, "number":  51, "velocity": 0.527559 },
-          { "time": 3.9990, "duration": 0.6240, "number":  51, "velocity": 0.708661 },
-          { "time": 4.0094, "duration": 0.6250, "number":  36, "velocity": 0.755906 },
-          { "time": 4.6573, "duration": 0.3333, "number":  51, "velocity": 0.511811 },
-          { "time": 4.6615, "duration": 0.3333, "number":  38, "velocity": 0.283465 },
-          { "time": 4.9948, "duration": 0.6240, "number":  38, "velocity": 0.755906 },
-          { "time": 5.0031, "duration": 0.6208, "number":  51, "velocity": 0.692913 },
-          { "time": 5.0083, "duration": 0.3750, "number":  44, "velocity": 0.818898 },
-          { "time": 5.6625, "duration": 0.3750, "number":  38, "velocity": 0.362205 },
-          { "time": 5.6719, "duration": 0.3229, "number":  36, "velocity": 0.724409 },
-          { "time": 5.6729, "duration": 0.3177, "number":  51, "velocity": 0.519685 },
-          { "time": 5.9906, "duration": 0.6250, "number":  51, "velocity": 0.708661 },
-          { "time": 5.9948, "duration": 0.6250, "number":  36, "velocity": 0.732283 },
-          { "time": 6.6615, "duration": 0.3333, "number":  38, "velocity": 0.283465 },
-          { "time": 6.6708, "duration": 0.3750, "number":  36, "velocity": 0.740157 },
-          { "time": 6.6771, "duration": 0.3260, "number":  51, "velocity": 0.527559 },
-          { "time": 6.9990, "duration": 0.3750, "number":  44, "velocity": 0.795276 },
-          { "time": 7.0031, "duration": 0.6219, "number":  51, "velocity": 0.700787 },
-          { "time": 7.0083, "duration": 0.6167, "number":  38, "velocity": 0.748031 },
-          { "time": 7.6250, "duration": 0.3750, "number":  38, "velocity": 0.370079 },
-          { "time": 7.6250, "duration": 0.3750, "number":  36, "velocity": 0.771654 },
-          { "time": 7.6250, "duration": 0.3750, "number":  51, "velocity": 0.519685 }
-        ]
-      },
-      "fills": [
-        {
-          "notes": [
-            { "time": 2.6615, "duration": 0.0417, "number":  38, "velocity": 0.417323 },
-            { "time": 2.8375, "duration": 0.0417, "number":  38, "velocity": 0.401575 },
-            { "time": 2.9969, "duration": 0.0417, "number":  36, "velocity": 0.574803 },
-            { "time": 3.0010, "duration": 0.0417, "number":  38, "velocity": 0.881890 },
-            { "time": 3.0042, "duration": 0.0417, "number":  44, "velocity": 0.913386 },
-            { "time": 3.6708, "duration": 0.0417, "number":  38, "velocity": 0.881890 },
-            { "time": 4.0000, "duration": 0.1250, "number":  36, "velocity": 0.763780 },
-            { "time": 4.0000, "duration": 0.1250, "number":  49, "velocity": 0.992126 }
-          ]
-        },
-        {
-          "notes": [
-            { "time": 2.6833, "duration": 0.0417, "number":  38, "velocity": 0.692913 },
-            { "time": 2.9917, "duration": 0.0417, "number":  36, "velocity": 0.700787 },
-            { "time": 3.0000, "duration": 0.1250, "number":  44, "velocity": 0.889764 },
-            { "time": 3.0031, "duration": 0.0417, "number":  38, "velocity": 0.826772 },
-            { "time": 3.3323, "duration": 0.0417, "number":  38, "velocity": 0.779528 },
-            { "time": 3.6719, "duration": 0.0417, "number":  38, "velocity": 0.850394 },
-            { "time": 3.9917, "duration": 0.1250, "number":  36, "velocity": 0.866142 },
-            { "time": 4.0052, "duration": 0.1250, "number":  49, "velocity": 0.929134 }
-          ]
-        }
-      ],
-      "transition": {
-        "notes": [
-          { "time": 1.0021, "duration": 0.0417, "number":  38, "velocity": 0.795276 },
-          { "time": 1.0021, "duration": 0.1250, "number":  36, "velocity": 0.724409 },
-          { "time": 1.3219, "duration": 0.0417, "number":  38, "velocity": 0.795276 },
-          { "time": 1.6417, "duration": 0.0417, "number":  38, "velocity": 0.866142 },
-          { "time": 2.0000, "duration": 0.0417, "number":  45, "velocity": 0.700787 },
-          { "time": 2.0031, "duration": 0.0417, "number":  36, "velocity": 0.574803 },
-          { "time": 2.3302, "duration": 0.0417, "number":  45, "velocity": 0.622047 },
-          { "time": 2.6656, "duration": 0.0417, "number":  45, "velocity": 0.708661 },
-          { "time": 2.9937, "duration": 0.0417, "number":  36, "velocity": 0.645669 },
-          { "time": 3.0031, "duration": 0.0417, "number":  43, "velocity": 0.716535 },
-          { "time": 3.3062, "duration": 0.0417, "number":  43, "velocity": 0.700787 },
-          { "time": 3.6448, "duration": 0.0417, "number":  43, "velocity": 0.748031 },
-          { "time": 3.9906, "duration": 0.1250, "number":  36, "velocity": 0.834646 },
-          { "time": 4.0000, "duration": 0.1250, "number":  56, "velocity": 0.771654 },
-          { "time": 4.0031, "duration": 0.1250, "number":  57, "velocity": 0.779528 }
-        ]
-      }
+        auto beat = buildWith(R"(, "quarters_per_bar": 3)");
+        REQUIRE( beat );
+        REQUIRE( beat->quartersPerBar == 3.0 );
+        REQUIRE( beat->signature.num == 3 );
+        REQUIRE( beat->signature.denom == 4 );
     }
-  ]
+
+    SECTION("From a signature, which implies the quarters per bar")
+    {
+        auto beat = buildWith(R"(, "signature": [5, 4])");
+        REQUIRE( beat );
+        REQUIRE( beat->quartersPerBar == 5.0 );
+        REQUIRE( beat->signature.num == 5 );
+        REQUIRE( beat->signature.denom == 4 );
+    }
+
+    SECTION("Quarters per bar takes precedence over the signature")
+    {
+        auto beat = buildWith(R"(, "quarters_per_bar": 3, "signature": [12, 8])");
+        REQUIRE( beat );
+        REQUIRE( beat->quartersPerBar == 3.0 );
+        REQUIRE( beat->signature.num == 3 );
+        REQUIRE( beat->signature.denom == 4 );
+    }
 }
-    )";
 
-    auto beat = BeatDescription::buildFromString(fs::current_path() / "tests/files/shuffle.json", file, ec);
-    REQUIRE( beat );
-    REQUIRE( beat->bpm == 120 );
-    REQUIRE( beat->quartersPerBar == 4.0 );
-    REQUIRE( beat->intro );
-    REQUIRE( beat->parts.size() == 2 );
-    REQUIRE( beat->parts[0].name == "Hat" );
-    REQUIRE( beat->parts[1].name == "Ride" );
-    REQUIRE( beat->parts[0].fills.size() == 2 );
-    REQUIRE( beat->parts[1].fills.size() == 2 );
-    REQUIRE( beat->parts[0].transition );
-    REQUIRE( beat->parts[1].transition );
+TEST_CASE("[Files] Every shipped beat loads")
+{
+    const auto beatsDirectory = fs::current_path() / "beats";
+    REQUIRE( fs::is_directory(beatsDirectory) );
 
+    int loaded = 0;
+    for (const auto& entry : fs::directory_iterator(beatsDirectory)) {
+        if (entry.path().extension() != ".json")
+            continue;
+
+        std::error_code ec;
+        INFO( "Loading " << entry.path().string() );
+        auto beat = BeatDescription::buildFromFile(entry.path(), ec);
+        REQUIRE( beat );
+        REQUIRE( !ec );
+        REQUIRE( !beat->name.empty() );
+        REQUIRE( beat->bpm > 0.0f );
+        REQUIRE( beat->quartersPerBar > 0.0 );
+        REQUIRE( !beat->parts.empty() );
+        for (const auto& part : beat->parts) {
+            REQUIRE( !part.name.empty() );
+            REQUIRE( !part.mainLoop.empty() );
+        }
+        loaded++;
+    }
+
+    REQUIRE( loaded > 0 );
 }
